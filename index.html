@@ -1,1 +1,585 @@
-
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#0f172a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>Levyraati</title>
+<link rel="manifest" href="manifest.json" />
+<style>
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+margin: 0;
+padding: 0;
+background-color: #0f172a;
+color: #f8fafc;
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+line-height: 1.45;
+}
+body { padding-bottom: 84px; }
+header {
+position: sticky;
+top: 0;
+z-index: 20;
+background: rgba(15, 23, 42, 0.96);
+backdrop-filter: blur(8px);
+border-bottom: 1px solid #1e293b;
+padding: 12px 16px;
+}
+.wrap { max-width: 540px; margin: 0 auto; }
+.header-row { display: flex; align-items: center; justify-content: space-between; }
+.brand { display: flex; align-items: center; gap: 11px; }
+.app-logo { width: 42px; height: 42px; min-width: 42px; min-height: 42px; display: block; border-radius: 12px; }
+.brand h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.badge { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #94a3b8; margin-top: 1px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block; }
+main { max-width: 540px; margin: 0 auto; padding: 16px; }
+.hidden { display: none !important; }
+.card {
+background: #1e293b;
+border: 1px solid #334155;
+border-radius: 14px;
+padding: 14px;
+margin-bottom: 12px;
+}
+.row { display: flex; gap: 8px; align-items: center; }
+input, select, textarea {
+width: 100%;
+background: #0f172a;
+border: 1px solid #334155;
+color: #f8fafc;
+border-radius: 10px;
+padding: 11px 12px;
+font-size: 14px;
+font-family: inherit;
+}
+input:focus, select:focus, textarea:focus { outline: none; border-color: #10b981; }
+button {
+border: none;
+border-radius: 10px;
+padding: 11px 16px;
+font-size: 14px;
+font-weight: 600;
+cursor: pointer;
+font-family: inherit;
+}
+.btn-primary { background: #10b981; color: #052e16; }
+.btn-primary:active { opacity: 0.85; }
+.btn-secondary { background: #334155; color: #f8fafc; }
+.btn-spotify { background: #1db954; color: #052e16; text-decoration: none; display: inline-block; text-align: center; border-radius: 10px; font-weight: 700; }
+.btn-danger { background: #4c0519; color: #fda4af; }
+.btn-sm { padding: 7px 11px; font-size: 12px; }
+.album-item { display: flex; gap: 12px; align-items: center; }
+.cover {
+width: 62px;
+height: 62px;
+border-radius: 10px;
+object-fit: cover;
+background: #0f172a;
+flex-shrink: 0;
+}
+.info { flex: 1; min-width: 0; }
+.title { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.artist { color: #34d399; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.meta { color: #94a3b8; font-size: 11px; margin-top: 2px; }
+.score-pill {
+background: #0f172a;
+border: 1px solid #10b981;
+color: #34d399;
+font-weight: 800;
+font-size: 15px;
+padding: 6px 10px;
+border-radius: 10px;
+flex-shrink: 0;
+}
+.alert {
+padding: 12px;
+border-radius: 10px;
+font-size: 13px;
+margin-top: 10px;
+word-break: break-word;
+}
+.alert-err { background: #450a0a; border: 1px solid #991b1b; color: #fecaca; }
+.alert-ok { background: #022c22; border: 1px solid #065f46; color: #a7f3d0; }
+nav {
+position: fixed;
+bottom: 0;
+left: 0;
+right: 0;
+z-index: 30;
+background: rgba(15, 23, 42, 0.97);
+backdrop-filter: blur(8px);
+border-top: 1px solid #1e293b;
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+height: 64px;
+}
+.nav-btn {
+background: transparent;
+color: #94a3b8;
+border-radius: 0;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+gap: 3px;
+font-size: 11px;
+padding: 4px;
+}
+.nav-btn.active { color: #10b981; }
+.modal-bg {
+position: fixed;
+inset: 0;
+z-index: 50;
+background: rgba(2, 6, 23, 0.92);
+overflow-y: auto;
+padding: 16px;
+}
+.modal-box {
+max-width: 500px;
+margin: 12px auto 32px;
+background: #1e293b;
+border: 1px solid #475569;
+border-radius: 16px;
+padding: 16px;
+}
+.track-row {
+width: 100%;
+display: flex;
+justify-content: space-between;
+align-items: center;
+background: #0f172a;
+color: #cbd5e1;
+padding: 9px 11px;
+margin-bottom: 5px;
+font-size: 12px;
+text-align: left;
+}
+.track-row.fav { background: #064e3b; color: #6ee7b7; }
+label { display: block; font-size: 12px; color: #cbd5e1; margin: 12px 0 5px; }
+.fav-tags { margin-top: 8px; font-size: 11px; color: #34d399; }
+.stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+.stat-box { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 10px; text-align: center; }
+.stat-num { font-size: 20px; font-weight: 800; color: #10b981; }
+.stat-lbl { font-size: 11px; color: #94a3b8; }
+</style>
+</head>
+<body>
+​<header>
+<div class="wrap header-row">
+<div class="brand">
+<svg class="app-logo" width="42" height="42" viewBox="0 0 64 64" fill="none">
+<rect width="64" height="64" rx="14" fill="#1e293b"/>
+<circle cx="32" cy="32" r="22" fill="#0f172a" stroke="#10b981" stroke-width="3"/>
+<circle cx="32" cy="32" r="14" stroke="#334155" stroke-width="1.2"/>
+<circle cx="32" cy="32" r="7" fill="#10b981"/>
+<circle cx="32" cy="32" r="2.5" fill="#0f172a"/>
+</svg>
+<div>
+<h1>Levyraati</h1>
+<div class="badge">
+<span class="dot"></span>
+<span>Levyhaku valmiina</span>
+</div>
+</div>
+</div>
+<div id="statsText" style="font-size:12px;color:#94a3b8;">0 arviota</div>
+</div>
+</header>
+​<main>
+<!-- 1. ARVIOT -->
+<section id="tab-reviews">
+<div class="row" style="margin-bottom:12px;">
+<input id="filterInput" type="text" placeholder="Suodata arvioituja levyjä..." oninput="renderReviews()" />
+<select id="sortSelect" style="width:125px;" onchange="renderReviews()">
+<option value="newest">Uusin</option>
+<option value="highest">Paras</option>
+<option value="lowest">Heikoin</option>
+</select>
+</div>
+<div id="reviewsList"></div>
+</section>
+​<!-- 2. HAE -->
+<section id="tab-search" class="hidden">
+<form onsubmit="runSearch(event)" class="row">
+<input id="searchInput" type="text" placeholder="Hae artistia tai albumia..." />
+<button type="submit" id="searchBtn" class="btn-primary">Hae</button>
+</form>
+<div id="searchMsg" class="hidden"></div>
+<div id="searchResults" style="margin-top:12px;"></div>
+</section>
+​<!-- 3. JONO -->
+<section id="tab-queue" class="hidden">
+<div class="row" style="justify-content:space-between;margin-bottom:12px;">
+<strong style="font-size:16px;">Kuuntelujono</strong>
+<span id="queueCount" style="font-size:12px;color:#94a3b8;">0 levyä</span>
+</div>
+<div id="queueList"></div>
+</section>
+​<!-- 4. ASETUKSET & TILASTOT -->
+<section id="tab-settings" class="hidden">
+<div class="card">
+<strong style="font-size:16px;">Tilastot</strong>
+<div class="stat-grid">
+<div class="stat-box">
+<div id="statTotal" class="stat-num">0</div>
+<div class="stat-lbl">Arvioitua levyä</div>
+</div>
+<div class="stat-box">
+<div id="statAvg" class="stat-num">-</div>
+<div class="stat-lbl">Keskiarvo</div>
+</div>
+</div>
+</div>
+​<div class="card">
+<strong style="font-size:16px;">Varmuuskopiointi</strong>
+<p style="font-size:12px;color:#94a3b8;margin:6px 0 12px;">
+Tallenna kaikki arviot ja kuuntelujono JSON-tiedostoksi puhelimeen tai palauta varmuuskopio.
+</p>
+<div class="row">
+<button type="button" class="btn-primary" style="flex:1;" onclick="exportData()">Vie varmuuskopio</button>
+<button type="button" class="btn-secondary" style="flex:1;" onclick="document.getElementById('importFile').click()">Tuo tiedosto</button>
+<input id="importFile" type="file" accept=".json" class="hidden" onchange="importData(event)" />
+</div>
+</div>
+​<div class="card">
+<strong style="font-size:15px;">Tietoa hausta</strong>
+<p style="font-size:12px;color:#94a3b8;margin:6px 0 0;">
+Levyhaku käyttää avointa Apple Music / iTunes -tietokantaa ilman API-avaimia. Jokaisen levyn kortista voit avata albumin suoraan Spotifyssa kuuntelua varten.
+</p>
+</div>
+</section>
+</main>
+​<!-- ARVIOINTIMODAALI -->
+<div id="modal" class="modal-bg hidden">
+<div class="modal-box">
+<div class="row" style="align-items:flex-start;">
+<img id="mCover" class="cover" style="width:74px;height:74px;" src="" alt="" />
+<div class="info">
+<div id="mTitle" class="title" style="font-size:16px;"></div>
+<div id="mArtist" class="artist" style="font-size:13px;"></div>
+<div id="mYear" class="meta"></div>
+<a id="mSpotifyLink" href="#" target="_blank" rel="noopener" class="btn-spotify btn-sm" style="margin-top:6px;">
+Avaa Spotifyssa ↗
+</a>
+</div>
+<button type="button" class="btn-secondary btn-sm" onclick="closeModal()">Sulje</button>
+</div>
+​<div class="card" style="margin-top:14px;background:#0f172a;">
+<div class="row" style="justify-content:space-between;">
+<span style="font-size:12px;">Arvosana</span>
+<strong id="mScoreVal" style="color:#10b981;font-size:18px;">8.0 / 10</strong>
+</div>
+<input id="mSlider" type="range" min="1" max="10" step="0.5" value="8" style="padding:0;margin-top:8px;"
+oninput="document.getElementById('mScoreVal').textContent = Number(this.value).toFixed(1) + ' / 10'" />
+</div>
+​<label>Kommentti & tunnelmat</label>
+<textarea id="mComment" rows="3" placeholder="Mikä tässä levyssä toimii tai jää mieleen?"></textarea>
+​<label>Kappaleet (napauta tähteä suosikkikappaleille)</label>
+<div id="mTracks" style="max-height:200px;overflow-y:auto;"></div>
+​<div class="row" style="margin-top:14px;">
+<button type="button" class="btn-primary" style="flex:1;" onclick="saveReview()">Tallenna arvio</button>
+<button type="button" id="mDelBtn" class="btn-danger hidden" onclick="deleteReview()">Poista</button>
+</div>
+</div>
+</div>
+​<!-- ALAVALIKKO -->
+<nav>
+<button type="button" id="nav-reviews" class="nav-btn active" onclick="goTab('reviews')">
+<span style="font-size:18px;">★</span>
+<span>Arviot</span>
+</button>
+<button type="button" id="nav-search" class="nav-btn" onclick="goTab('search')">
+<span style="font-size:18px;">🔍</span>
+<span>Hae</span>
+</button>
+<button type="button" id="nav-queue" class="nav-btn" onclick="goTab('queue')">
+<span style="font-size:18px;">☰</span>
+<span>Jono</span>
+</button>
+<button type="button" id="nav-settings" class="nav-btn" onclick="goTab('settings')">
+<span style="font-size:18px;">⚙</span>
+<span>Asetukset</span>
+</button>
+</nav>
+​<script>
+// Purkaa mahdollisen vanhan jumittuneen Service Workerin automaattisesti
+if ('serviceWorker' in navigator) {
+navigator.serviceWorker.getRegistrations().then(function(regs) {
+for (var i = 0; i < regs.length; i++) regs[i].unregister();
+});
+}
+​function loadArr(key) {
+try {
+var d = JSON.parse(localStorage.getItem(key) || '[]');
+return Array.isArray(d) ? d : [];
+} catch (e) { return []; }
+}
+​var reviews = loadArr('levyraati_reviews');
+var queue = loadArr('levyraati_queue');
+var currentAlbum = null;
+var favSet = new Set();
+​function goTab(name) {
+var tabs = ['reviews', 'search', 'queue', 'settings'];
+for (var i = 0; i < tabs.length; i++) {
+var t = tabs[i];
+document.getElementById('tab-' + t).classList.toggle('hidden', t !== name);
+document.getElementById('nav-' + t).classList.toggle('active', t === name);
+}
+if (name === 'reviews') renderReviews();
+if (name === 'queue') renderQueue();
+if (name === 'settings') updateStats();
+}
+​function makeSpotifyUrl(artist, title) {
+return 'https://open.spotify.com/search/' + encodeURIComponent((artist || '') + ' ' + (title || ''));
+}
+​async function runSearch(e) {
+e.preventDefault();
+var q = document.getElementById('searchInput').value.trim();
+if (!q) return;
+var btn = document.getElementById('searchBtn');
+var msg = document.getElementById('searchMsg');
+var box = document.getElementById('searchResults');
+​btn.disabled = true;
+btn.textContent = '...';
+msg.className = 'hidden';
+box.innerHTML = '';
+​try {
+var url = 'https://itunes.apple.com/search?term=' + encodeURIComponent(q) + '&entity=album&country=FI&limit=20';
+var res = await fetch(url);
+if (!res.ok) throw new Error('Hakupalvelu ei vastannut (' + res.status + ').');
+var data = await res.json();
+var items = data.results || [];
+​if (!items.length) {
+msg.className = 'alert alert-ok';
+msg.textContent = 'Ei hakutuloksia hakusanalla "' + q + '".';
+return;
+}
+​items.forEach(function(a) {
+var albumId = String(a.collectionId);
+var cover = (a.artworkUrl100 || '').replace('100x100bb', '400x400bb');
+var artist = a.artistName || 'Tuntematon artisti';
+var title = a.collectionName || 'Nimetön albumi';
+var year = (a.releaseDate || '').slice(0, 4);
+var inQueue = queue.some(function(x) { return String(x.id) === albumId; });
+var reviewed = reviews.find(function(r) { return String(r.id) === albumId; });
+​var div = document.createElement('div');
+div.className = 'card album-item';
+div.innerHTML =
+'<img class="cover" src="' + cover + '" alt="" />' +
+'<div class="info">' +
+'<div class="title">' + esc(title) + '</div>' +
+'<div class="artist">' + esc(artist) + '</div>' +
+'<div class="meta">' + year + ' • ' + (a.trackCount || '?') + ' kpl</div>' +
+'</div>' +
+'<div style="display:flex;flex-direction:column;gap:6px;">' +
+'<button type="button" class="btn-primary btn-sm r-btn">' + (reviewed ? (Number(reviewed.score).toFixed(1) + '/10') : 'Arvioi') + '</button>' +
+'<button type="button" class="btn-secondary btn-sm q-btn">' + (inQueue ? 'Jonossa' : '+ Jono') + '</button>' +
+'</div>';
+​div.querySelector('.r-btn').onclick = function() {
+openModal({ id: albumId, title: title, artist: artist, year: year, cover: cover });
+};
+div.querySelector('.q-btn').onclick = function(ev) {
+if (!queue.some(function(x) { return String(x.id) === albumId; })) {
+queue.unshift({ id: albumId, title: title, artist: artist, year: year, cover: cover });
+localStorage.setItem('levyraati_queue', JSON.stringify(queue));
+ev.target.textContent = 'Jonossa';
+}
+};
+box.appendChild(div);
+});
+} catch (err) {
+msg.className = 'alert alert-err';
+msg.textContent = 'Haku epäonnistui: ' + err.message;
+} finally {
+btn.disabled = false;
+btn.textContent = 'Hae';
+}
+}
+​async function openModal(album) {
+currentAlbum = album;
+var ex = reviews.find(function(r) { return String(r.id) === String(album.id); });
+favSet = new Set((ex && ex.favoriteTracks) ? ex.favoriteTracks : []);
+​document.getElementById('mCover').src = album.cover || '';
+document.getElementById('mTitle').textContent = album.title || '';
+document.getElementById('mArtist').textContent = album.artist || '';
+document.getElementById('mYear').textContent = album.year ? ('Julkaistu ' + album.year) : '';
+document.getElementById('mSpotifyLink').href = makeSpotifyUrl(album.artist, album.title);
+​var sc = ex ? ex.score : 8.0;
+document.getElementById('mSlider').value = sc;
+document.getElementById('mScoreVal').textContent = Number(sc).toFixed(1) + ' / 10';
+document.getElementById('mComment').value = (ex && ex.comment) ? ex.comment : '';
+document.getElementById('mDelBtn').classList.toggle('hidden', !ex);
+document.getElementById('modal').classList.remove('hidden');
+​var tBox = document.getElementById('mTracks');
+tBox.innerHTML = '<div class="meta">Ladataan kappalelistaa...</div>';
+​var tracks = (ex && ex.tracks && ex.tracks.length) ? ex.tracks : [];
+if (!tracks.length && /^\d+$/.test(String(album.id))) {
+try {
+var res = await fetch('https://itunes.apple.com/lookup?id=' + album.id + '&entity=song&country=FI');
+if (res.ok) {
+var d = await res.json();
+tracks = (d.results || [])
+.filter(function(item) { return item.wrapperType === 'track'; })
+.map(function(t) { return t.trackName; });
+}
+} catch (e) {}
+}
+currentAlbum.tracks = tracks;
+tBox.innerHTML = '';
+​if (!tracks.length) {
+tBox.innerHTML = '<div class="meta">Kappalelistaa ei saatavilla tälle julkaisulle.</div>';
+return;
+}
+​tracks.forEach(function(tName, idx) {
+var name = typeof tName === 'string' ? tName : (tName.name || '');
+var row = document.createElement('button');
+row.type = 'button';
+row.className = 'track-row' + (favSet.has(name) ? ' fav' : '');
+row.innerHTML = '<span>' + (idx + 1) + '. ' + esc(name) + '</span><span>' + (favSet.has(name) ? '★' : '☆') + '</span>';
+row.onclick = function() {
+if (favSet.has(name)) {
+favSet.delete(name);
+row.className = 'track-row';
+row.lastChild.textContent = '☆';
+} else {
+favSet.add(name);
+row.className = 'track-row fav';
+row.lastChild.textContent = '★';
+}
+};
+tBox.appendChild(row);
+});
+}
+​function closeModal() {
+document.getElementById('modal').classList.add('hidden');
+}
+​function saveReview() {
+if (!currentAlbum) return;
+var obj = Object.assign({}, currentAlbum, {
+score: parseFloat(document.getElementById('mSlider').value),
+comment: document.getElementById('mComment').value.trim(),
+favoriteTracks: Array.from(favSet),
+updatedAt: Date.now()
+});
+var i = reviews.findIndex(function(r) { return String(r.id) === String(currentAlbum.id); });
+if (i >= 0) reviews[i] = obj; else reviews.unshift(obj);
+queue = queue.filter(function(q) { return String(q.id) !== String(currentAlbum.id); });
+localStorage.setItem('levyraati_reviews', JSON.stringify(reviews));
+localStorage.setItem('levyraati_queue', JSON.stringify(queue));
+closeModal();
+renderReviews();
+}
+​function deleteReview() {
+if (!currentAlbum) return;
+reviews = reviews.filter(function(r) { return String(r.id) !== String(currentAlbum.id); });
+localStorage.setItem('levyraati_reviews', JSON.stringify(reviews));
+closeModal();
+renderReviews();
+}
+​function renderReviews() {
+var list = document.getElementById('reviewsList');
+var f = (document.getElementById('filterInput').value || '').toLowerCase();
+var s = document.getElementById('sortSelect').value;
+document.getElementById('statsText').textContent = reviews.length + ' arviota';
+​var arr = reviews.filter(function(r) {
+return (r.title || '').toLowerCase().includes(f) || (r.artist || '').toLowerCase().includes(f);
+});
+if (s === 'highest') arr.sort(function(a, b) { return b.score - a.score; });
+else if (s === 'lowest') arr.sort(function(a, b) { return a.score - b.score; });
+else arr.sort(function(a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); });
+​if (!arr.length) {
+list.innerHTML = '<div class="card" style="text-align:center;color:#94a3b8;padding:28px 16px;">Ei vielä arvioituja levyjä.
+Siirry alhaalta <strong style="color:#10b981;">Hae</strong>-välilehdelle etsimään ensimmäinen levy!</div>';
+return;
+}
+​list.innerHTML = '';
+arr.forEach(function(r) {
+var card = document.createElement('div');
+card.className = 'card';
+card.innerHTML =
+'<div class="album-item">' +
+'<img class="cover" src="' + (r.cover || '') + '" alt="" />' +
+'<div class="info">' +
+'<div class="title">' + esc(r.title) + '</div>' +
+'<div class="artist">' + esc(r.artist) + '</div>' +
+'<div class="meta">' + (r.year || '') + '</div>' +
+'</div>' +
+'<div class="score-pill">' + Number(r.score).toFixed(1) + '</div>' +
+'</div>' +
+(r.comment ? '<div style="margin-top:9px;font-size:13px;color:#cbd5e1;background:#0f172a;padding:9px 10px;border-radius:9px;">' + esc(r.comment) + '</div>' : '') +
+((r.favoriteTracks && r.favoriteTracks.length) ? '<div class="fav-tags">★ ' + r.favoriteTracks.map(esc).join(', ') + '</div>' : '');
+card.onclick = function() { openModal(r); };
+list.appendChild(card);
+});
+}
+​function renderQueue() {
+var list = document.getElementById('queueList');
+document.getElementById('queueCount').textContent = queue.length + ' levyä';
+if (!queue.length) {
+list.innerHTML = '<div class="card" style="text-align:center;color:#94a3b8;padding:28px 16px;">Kuuntelujono on tyhjä.</div>';
+return;
+}
+list.innerHTML = '';
+queue.forEach(function(q) {
+var card = document.createElement('div');
+card.className = 'card album-item';
+card.innerHTML =
+'<img class="cover" src="' + (q.cover || '') + '" alt="" />' +
+'<div class="info"><div class="title">' + esc(q.title) + '</div><div class="artist">' + esc(q.artist) + '</div></div>' +
+'<button type="button" class="btn-primary btn-sm r-btn">Arvioi</button>' +
+'<button type="button" class="btn-secondary btn-sm d-btn">×</button>';
+card.querySelector('.r-btn').onclick = function() { openModal(q); };
+card.querySelector('.d-btn').onclick = function() {
+queue = queue.filter(function(x) { return String(x.id) !== String(q.id); });
+localStorage.setItem('levyraati_queue', JSON.stringify(queue));
+renderQueue();
+};
+list.appendChild(card);
+});
+}
+​function updateStats() {
+document.getElementById('statTotal').textContent = reviews.length;
+if (!reviews.length) {
+document.getElementById('statAvg').textContent = '-';
+return;
+}
+var sum = reviews.reduce(function(acc, r) { return acc + Number(r.score || 0); }, 0);
+document.getElementById('statAvg').textContent = (sum / reviews.length).toFixed(2);
+}
+​function exportData() {
+var blob = new Blob([JSON.stringify({ reviews: reviews, queue: queue }, null, 2)], { type: 'application/json' });
+var a = document.createElement('a');
+a.href = URL.createObjectURL(blob);
+a.download = 'levyraati-varmuuskopio-' + new Date().toISOString().slice(0, 10) + '.json';
+a.click();
+}
+​function importData(e) {
+var f = e.target.files && e.target.files[0];
+if (!f) return;
+var r = new FileReader();
+r.onload = function(ev) {
+try {
+var d = JSON.parse(ev.target.result);
+if (Array.isArray(d.reviews)) reviews = d.reviews;
+if (Array.isArray(d.queue)) queue = d.queue;
+localStorage.setItem('levyraati_reviews', JSON.stringify(reviews));
+localStorage.setItem('levyraati_queue', JSON.stringify(queue));
+renderReviews();
+updateStats();
+alert('Varmuuskopio palautettu!');
+} catch (err) { alert('Virheellinen tiedosto.'); }
+};
+r.readAsText(f);
+}
+​function esc(s) {
+return String(s || '').replace(/[&<>"']/g, function(c) {
+return { '&': '&', '<': '<', '>': '>', '"': '"', "'": ''' }[c];
+});
+}
+​renderReviews();
+</script>
+</body>
+</html>
