@@ -1,0 +1,1997 @@
+```html
+<!DOCTYPE html>
+<html lang="fi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Levyraati - Albumien arviointisovellus & Kuuntelupäiväkirja</title>
+
+    <!-- Fallback & PWA Icon links (Päivittyvät dynaamisesti Canvas-pohjaisesti SVG-ikoniin) -->
+    <link id="app-favicon" rel="icon" type="image/png" href="icon.png">
+    <link id="app-apple-icon" rel="apple-touch-icon" href="icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Levyraati">
+    <meta name="theme-color" content="#0b0f14">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bg: '#0b0f14',
+                            card: '#131920',
+                            cardHover: '#1a222c',
+                            border: '#26303d',
+                            emerald: '#10b981',
+                            emeraldHover: '#059669',
+                            gold: '#f59e0b',
+                            silver: '#94a3b8',
+                            steel: '#475569'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        metal: ['Cinzel', 'Cinzel Decorative', 'Georgia', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Vue 3 & FontAwesome & Fonts -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #0b0f14;
+            color: #f1f5f9;
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0b0f14; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+        
+        /* Star Box for half-star precision */
+        .star-box {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            user-select: none;
+        }
+        .star-box .star-left {
+            position: absolute;
+            left: 0; top: 0;
+            width: 50%; height: 100%;
+            z-index: 10;
+        }
+        .star-box .star-right {
+            position: absolute;
+            right: 0; top: 0;
+            width: 50%; height: 100%;
+            z-index: 10;
+        }
+        
+        .metal-text {
+            font-family: 'Cinzel', serif;
+            letter-spacing: 0.05em;
+            background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 50%, #64748b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+        }
+        
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.25s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col pb-24 sm:pb-10 selection:bg-emerald-500 selection:text-black">
+
+    <div id="app" class="flex-grow flex flex-col max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6">
+        
+        <!-- YLÄPALKKI / HEADER (Yhtenäinen ilme) -->
+        <header class="flex flex-col sm:flex-row justify-between items-center pb-4 border-b border-brand-border/80 gap-3">
+            
+            <!-- Logo & Nimi (Toimii myös kotipainikkeena) -->
+            <div class="flex items-center gap-3 cursor-pointer group" @click="activeTab = 'search'">
+                <!-- Dynamisesti renderöity metallinen SVG-Logo -->
+                <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-gray-800 via-gray-900 to-black p-1 shadow-xl border border-gray-700/60 flex items-center justify-center group-hover:border-emerald-500/60 transition-all">
+                    <svg id="app-logo-svg" viewBox="0 0 200 200" class="w-full h-full">
+                        <defs>
+                            <linearGradient id="metalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#cbd5e1"/>
+                                <stop offset="40%" stop-color="#475569"/>
+                                <stop offset="70%" stop-color="#0f172a"/>
+                                <stop offset="100%" stop-color="#94a3b8"/>
+                            </linearGradient>
+                            <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#fbbf24"/>
+                                <stop offset="50%" stop-color="#d97706"/>
+                                <stop offset="100%" stop-color="#78350f"/>
+                            </linearGradient>
+                            <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#34d399"/>
+                                <stop offset="100%" stop-color="#059669"/>
+                            </linearGradient>
+                        </defs>
+                        <!-- Taustalaatta -->
+                        <rect x="5" y="5" width="190" height="190" rx="35" fill="#0d1117" stroke="#1f2937" stroke-width="4"/>
+                        <!-- Metallivinyyli piikeillä -->
+                        <g transform="translate(100,120)">
+                            <!-- Piikit / Ratas -->
+                            <path d="M0,-55 L6,-48 L12,-55 L15,-45 L25,-48 L25,-37 L35,-37 L32,-27 L42,-24 L36,-16 L46,-10 L38,-2 L46,6 L36,12 L42,22 L32,25 L35,35 L25,35 L25,46 L15,43 L12,53 L4,46 L-4,53 L-12,46 L-15,53 L-25,46 L-25,35 L-35,35 L-32,25 L-42,22 L-36,12 L-46,6 L-38,-2 L-46,-10 L-36,-16 L-42,-24 L-32,-27 L-35,-37 L-25,-37 L-25,-48 L-15,-45 L-12,-55 Z" fill="url(#metalGrad)" stroke="#10b981" stroke-width="1.5" opacity="0.9"/>
+                            <!-- Urat -->
+                            <circle r="42" fill="#1e293b" stroke="#000" stroke-width="3"/>
+                            <circle r="36" fill="none" stroke="#475569" stroke-width="1"/>
+                            <circle r="30" fill="none" stroke="#334155" stroke-width="1.5"/>
+                            <circle r="24" fill="none" stroke="#10b981" stroke-width="1" opacity="0.6"/>
+                            <circle r="18" fill="none" stroke="#475569" stroke-width="1"/>
+                            <!-- Keskiö -->
+                            <circle r="12" fill="url(#emeraldGrad)" stroke="#d97706" stroke-width="2"/>
+                            <circle r="4" fill="#000"/>
+                            <!-- 5 Tähteä kaaressa (3 Kultaa keskellä, 2 hopeaa reunoilla) -->
+                            <g>
+                                <!-- Tähti 1 (Hopea Vasen) -->
+                                <polygon points="-42,-5 -37,-15 -27,-15 -35,-22 -32,-32 -42,-26 -52,-32 -49,-22 -57,-15 -47,-15" fill="url(#metalGrad)"/>
+                                <!-- Tähti 2 (Kulta Vasen) -->
+                                <polygon points="-24,-30 -19,-40 -9,-40 -17,-47 -14,-57 -24,-51 -34,-57 -31,-47 -39,-40 -29,-40" fill="url(#goldGrad)"/>
+                                <!-- Tähti 3 (Kulta Keskellä) -->
+                                <polygon points="0,-42 5,-52 15,-52 7,-59 10,-69 0,-63 -10,-69 -7,-59 -15,-52 -5,-52" fill="url(#goldGrad)"/>
+                                <!-- Tähti 4 (Kulta Oikea) -->
+                                <polygon points="24,-30 29,-40 39,-40 31,-47 34,-57 24,-51 14,-57 17,-47 9,-40 19,-40" fill="url(#goldGrad)"/>
+                                <!-- Tähti 5 (Hopea Oikea) -->
+                                <polygon points="42,-5 47,-15 57,-15 49,-22 52,-32 42,-26 32,-32 35,-22 27,-15 37,-15" fill="url(#metalGrad)"/>
+                            </g>
+                        </g>
+                        <!-- Levyraati Teksti Goottilaisella/Teksti-tyylillä -->
+                        <text x="100" y="44" text-anchor="middle" fill="url(#metalGrad)" font-family="Cinzel, Georgia, serif" font-weight="900" font-size="28" letter-spacing="1" stroke="#000" stroke-width="1.5">Levyraati</text>
+                    </svg>
+                </div>
+
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-2">
+                        <span class="metal-text">Levyraati</span>
+                        <span class="text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-md font-mono font-bold uppercase tracking-widest hidden sm:inline-block">PWA Pro</span>
+                    </h1>
+                    <p class="text-[11px] sm:text-xs text-gray-400">Täsmällinen albumipäiväkirja & musiikin arviointi</p>
+                </div>
+            </div>
+
+            <!-- Työpöytänavigaatio -->
+            <div class="hidden sm:flex items-center gap-2">
+                <button 
+                    @click="activeTab = 'search'" 
+                    :class="activeTab === 'search' ? 'bg-emerald-500 text-black font-extrabold' : 'bg-brand-card hover:bg-brand-cardHover text-gray-300'"
+                    class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center gap-2 border border-brand-border/80">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <span>Hae Spotifysta</span>
+                </button>
+
+                <button 
+                    @click="activeTab = 'queue'" 
+                    :class="activeTab === 'queue' ? 'bg-emerald-500 text-black font-extrabold' : 'bg-brand-card hover:bg-brand-cardHover text-gray-300'"
+                    class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center gap-2 border border-brand-border/80 relative">
+                    <i class="fa-solid fa-clock text-amber-400"></i>
+                    <span>Kuuntelujono</span>
+                    <span v-if="queue.length > 0" class="ml-1 px-2 py-0.5 text-xs bg-amber-500 text-black font-extrabold font-mono rounded-full">
+                        {{ queue.length }}
+                    </span>
+                </button>
+
+                <button 
+                    @click="activeTab = 'my-ratings'" 
+                    :class="activeTab === 'my-ratings' ? 'bg-emerald-500 text-black font-extrabold' : 'bg-brand-card hover:bg-brand-cardHover text-gray-300'"
+                    class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center gap-2 border border-brand-border/80 relative">
+                    <i class="fa-solid fa-compact-disc text-emerald-400"></i>
+                    <span>Arvioidut levyt</span>
+                    <span class="ml-1 px-2 py-0.5 text-xs bg-gray-900 text-emerald-400 font-mono font-bold rounded-full border border-emerald-500/30">
+                        {{ savedRatings.length }}
+                    </span>
+                </button>
+
+                <button 
+                    @click="activeTab = 'stats'" 
+                    :class="activeTab === 'stats' ? 'bg-emerald-500 text-black font-extrabold' : 'bg-brand-card hover:bg-brand-cardHover text-gray-300'"
+                    class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center gap-2 border border-brand-border/80">
+                    <i class="fa-solid fa-chart-pie text-purple-400"></i>
+                    <span>Tilastot</span>
+                </button>
+
+                <button 
+                    @click="showSettingsModal = true" 
+                    title="Asetukset & Synkronointi"
+                    class="p-2.5 rounded-xl bg-brand-card hover:bg-brand-cardHover text-gray-300 border border-brand-border/80 transition-all">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- PÄÄSISÄLTÖ -->
+        <main class="flex-grow py-5">
+
+            <!-- TAB 1: HAE SPOTIFYSTA & ESIMERKIT -->
+            <section v-if="activeTab === 'search'" class="space-y-6">
+                <!-- Hakupalkki -->
+                <div class="bg-brand-card p-4 sm:p-6 rounded-3xl border border-brand-border shadow-xl space-y-4">
+                    <div class="flex flex-col md:flex-row gap-3">
+                        <div class="relative flex-grow">
+                            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            <input 
+                                v-model="searchQuery" 
+                                @keyup.enter="handleSearch"
+                                type="text" 
+                                placeholder="Hae albumia tai artistia (esim. Pariisin Kevät, Daft Punk, Pink Floyd)..." 
+                                class="w-full bg-brand-bg pl-11 pr-10 py-3.5 rounded-2xl border border-brand-border text-white text-sm placeholder-gray-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
+                            <button v-if="searchQuery" @click="searchQuery = ''; filterPresetAlbums()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-1">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <div class="flex gap-2">
+                            <button 
+                                @click="handleSearch" 
+                                class="flex-1 md:flex-none px-6 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40">
+                                <i class="fa-solid fa-search"></i>
+                                <span>Hae</span>
+                            </button>
+                            <button 
+                                @click="openManualModal" 
+                                class="flex-1 md:flex-none px-4 py-3.5 bg-brand-bg hover:bg-gray-800 text-gray-200 font-semibold text-xs sm:text-sm rounded-2xl border border-brand-border transition-all flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-plus text-emerald-400"></i>
+                                <span>Oma levy</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tilatieto & API-tila -->
+                    <div class="flex flex-wrap items-center justify-between text-xs text-gray-400 pt-1 px-1 gap-2">
+                        <span class="flex items-center gap-2">
+                            <span :class="spotifyConfigured ? 'bg-emerald-500' : 'bg-amber-500'" class="w-2.5 h-2.5 rounded-full animate-pulse"></span>
+                            <span>{{ spotifyConfigured ? 'Spotify API aktiivinen' : 'Esimerkkikirjasto (Aseta Spotify API -tunnukset Asetuksissa)' }}</span>
+                        </span>
+                        <span v-if="isSearching" class="text-emerald-400 flex items-center gap-1.5 font-semibold">
+                            <i class="fa-solid fa-spinner animate-spin"></i> Haetaan Spotifysta...
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Hakutulokset / Kirjasto -->
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-base sm:text-lg font-extrabold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-record-vinyl text-emerald-400"></i>
+                            <span>{{ isSpotifySearchResult ? 'Hakutulokset Spotifysta' : 'Suositellut albumit' }}</span>
+                        </h2>
+                        <span class="text-xs text-gray-400">{{ displayedAlbums.length }} albumia</span>
+                    </div>
+
+                    <div v-if="displayedAlbums.length === 0" class="text-center py-16 bg-brand-card/40 rounded-3xl border border-dashed border-brand-border">
+                        <i class="fa-solid fa-compact-disc text-4xl text-gray-600 mb-3"></i>
+                        <p class="text-gray-400 text-sm">Ei hakutuloksia nimellä "{{ searchQuery }}".</p>
+                        <button @click="openManualModal" class="mt-4 px-4 py-2.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-xs font-bold transition-all">
+                            Lisää albumi manuaalisesti
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-5">
+                        <div 
+                            v-for="album in displayedAlbums" 
+                            :key="album.id" 
+                            class="group bg-brand-card hover:bg-brand-cardHover p-3 rounded-2xl border border-brand-border hover:border-emerald-500/50 transition-all duration-300 flex flex-col justify-between shadow-lg relative">
+                            
+                            <!-- Kuva & Suorat toiminnot -->
+                            <div class="relative aspect-square rounded-xl overflow-hidden mb-3 bg-gray-900 border border-brand-border/40">
+                                <img 
+                                    :src="album.coverUrl" 
+                                    :alt="album.title" 
+                                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                    @error="handleImageError">
+                                
+                                <!-- Merkitse jos jo arvioitu -->
+                                <div v-if="getSavedRating(album.id)" class="absolute top-2 right-2 bg-amber-500 text-black font-black text-xs px-2 py-0.5 rounded-md shadow-md border border-amber-300/40">
+                                    ★ {{ getSavedRating(album.id).overallScore || getSavedRating(album.id).trackAverage }}
+                                </div>
+                                <div v-else-if="isInQueue(album.id)" class="absolute top-2 right-2 bg-purple-600 text-white font-bold text-[10px] px-2 py-0.5 rounded-md shadow-md">
+                                    Jonossa
+                                </div>
+
+                                <!-- Overlay toimintanapit -->
+                                <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
+                                    <button 
+                                        @click="selectAlbumToRate(album)"
+                                        class="w-full py-2 bg-emerald-500 text-black font-bold text-xs rounded-xl shadow-lg flex items-center justify-center gap-1.5 hover:bg-emerald-400 transition-colors">
+                                        <i class="fa-solid fa-star"></i> Arvioi
+                                    </button>
+                                    <button 
+                                        v-if="!isInQueue(album.id) && !getSavedRating(album.id)"
+                                        @click="addToQueue(album)"
+                                        class="w-full py-1.5 bg-gray-800 hover:bg-gray-700 text-amber-400 font-semibold text-[11px] rounded-xl border border-amber-500/30 flex items-center justify-center gap-1 transition-colors">
+                                        <i class="fa-solid fa-plus"></i> Jonoon
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 class="font-bold text-xs sm:text-sm text-white line-clamp-1 group-hover:text-emerald-400 transition-colors" :title="album.title">
+                                    {{ album.title }}
+                                </h3>
+                                <p class="text-[11px] sm:text-xs text-gray-400 line-clamp-1 mt-0.5" :title="album.artist">
+                                    {{ album.artist }}
+                                </p>
+                                <div class="flex items-center justify-between text-[10px] sm:text-[11px] text-gray-500 mt-2 pt-2 border-t border-brand-border/30">
+                                    <span>{{ album.year }}</span>
+                                    <a v-if="getSpotifyUrl(album)" :href="getSpotifyUrl(album)" target="_blank" class="text-emerald-400 hover:underline flex items-center gap-1">
+                                        <i class="fa-brands fa-spotify"></i> Spotify
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: ARVIOINTINÄKYMÄ -->
+            <section v-if="activeTab === 'rate' && currentAlbum" class="space-y-6">
+                <!-- Takaisin-painike -->
+                <div class="flex items-center justify-between">
+                    <button 
+                        @click="activeTab = 'search'" 
+                        class="px-3.5 py-2 bg-brand-card hover:bg-brand-cardHover text-gray-300 text-xs sm:text-sm font-medium rounded-xl border border-brand-border flex items-center gap-2 transition-all">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        <span>Takaisin hakukirjastoon</span>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <a v-if="getSpotifyUrl(currentAlbum)" :href="getSpotifyUrl(currentAlbum)" target="_blank" class="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs rounded-xl border border-emerald-500/30 font-semibold flex items-center gap-1.5 transition-colors">
+                            <i class="fa-brands fa-spotify text-sm"></i> Avaa Spotifyssa
+                        </a>
+                        <span v-if="isExistingRating" class="px-3 py-1 bg-amber-500/10 text-amber-400 text-xs rounded-full border border-amber-500/30 font-semibold">
+                            Muokataan arviointia
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Levyn Header & Kaksi Arvosanaa -->
+                <div class="bg-brand-card p-5 sm:p-8 rounded-3xl border border-brand-border shadow-2xl relative overflow-hidden">
+                    <div class="absolute -right-20 -top-20 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                    <div class="flex flex-col md:flex-row gap-6 sm:gap-8 items-center md:items-start relative z-10">
+                        <div class="w-40 h-40 sm:w-48 sm:h-48 rounded-2xl overflow-hidden shadow-2xl border-2 border-brand-border flex-shrink-0 bg-gray-900">
+                            <img :src="currentAlbum.coverUrl" :alt="currentAlbum.title" class="w-full h-full object-cover" @error="handleImageError">
+                        </div>
+
+                        <div class="flex-grow text-center md:text-left space-y-3">
+                            <div class="flex flex-wrap items-center justify-center md:justify-start gap-2 text-xs">
+                                <span class="px-2.5 py-0.5 bg-emerald-500/10 text-emerald-400 font-bold rounded-md border border-emerald-500/20">
+                                    ALBUMI
+                                </span>
+                                <span class="text-gray-400">• {{ currentAlbum.year }}</span>
+                                <span class="text-gray-400">• {{ currentAlbum.tracks.length }} biisiä</span>
+                                <span class="text-gray-400">• {{ totalAlbumDuration }}</span>
+                            </div>
+
+                            <h1 class="text-2xl sm:text-4xl font-black text-white tracking-tight">
+                                {{ currentAlbum.title }}
+                            </h1>
+                            <p class="text-base sm:text-lg text-emerald-400 font-bold">
+                                {{ currentAlbum.artist }}
+                            </p>
+
+                            <!-- KAKSI ARVOSANAA RINNAKKAIN -->
+                            <div class="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl">
+                                <!-- 1. Oma kokonaisarvosana (Tunnelma) -->
+                                <div class="bg-brand-bg/90 border border-amber-500/40 p-3.5 rounded-2xl flex flex-col justify-between shadow-inner">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                                            <i class="fa-solid fa-heart"></i> Oma Kokonaisarvosana
+                                        </span>
+                                        <span class="text-xs text-gray-400 font-mono">Tunnelma</span>
+                                    </div>
+                                    <div class="flex items-center justify-between pt-1">
+                                        <div class="flex items-center gap-1">
+                                            <div 
+                                                v-for="star in 5" 
+                                                :key="'overall-'+star" 
+                                                class="star-box text-xl"
+                                                title="Aseta kokonaisarvosana">
+                                                <div class="star-left" @click="overallScore = star - 0.5"></div>
+                                                <div class="star-right" @click="overallScore = star"></div>
+
+                                                <i v-if="overallScore >= star" class="fa-solid fa-star text-amber-400"></i>
+                                                <i v-else-if="overallScore >= star - 0.5" class="fa-solid fa-star-half-stroke text-amber-400"></i>
+                                                <i v-else class="fa-regular fa-star text-gray-600"></i>
+                                            </div>
+                                        </div>
+                                        <span class="text-2xl font-black font-mono text-amber-400 pl-2">
+                                            {{ overallScore ? overallScore.toFixed(1) : '-' }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- 2. Biisien Laskettu Keskiarvo -->
+                                <div class="bg-brand-bg/90 border border-brand-border p-3.5 rounded-2xl flex flex-col justify-between shadow-inner">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-[11px] font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                                            <i class="fa-solid fa-calculator text-emerald-400"></i> Biisien Keskiarvo
+                                        </span>
+                                        <span class="text-[10px] text-gray-400">{{ ratedTracksCount }}/{{ currentAlbum.tracks.length }} biisiä</span>
+                                    </div>
+                                    <div class="flex items-baseline justify-between pt-1">
+                                        <span class="text-2xl font-black font-mono text-emerald-400">
+                                            {{ calculatedAverage }}
+                                        </span>
+                                        <span class="text-xs font-mono" :class="scoreDiffClass">
+                                            {{ scoreDiffText }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAGIT -->
+                <div class="bg-brand-card p-5 rounded-3xl border border-brand-border shadow-xl space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-tags text-emerald-400"></i>
+                            <span>Albumitagit & Tunnisteet</span>
+                        </h3>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2">
+                        <span 
+                            v-for="(tag, idx) in currentTags" 
+                            :key="idx" 
+                            class="px-3 py-1 bg-emerald-500/15 text-emerald-300 text-xs font-semibold rounded-xl border border-emerald-500/30 flex items-center gap-2">
+                            <span>#{{ tag }}</span>
+                            <button @click="removeTag(idx)" class="hover:text-red-400 transition-colors">
+                                <i class="fa-solid fa-xmark text-xs"></i>
+                            </button>
+                        </span>
+                        <span v-if="currentTags.length === 0" class="text-xs text-gray-500 italic">Ei lisättyjä tageja.</span>
+                    </div>
+
+                    <div class="pt-2 space-y-2">
+                        <div class="flex gap-2">
+                            <input 
+                                v-model="newTagInput" 
+                                @keyup.enter="addTagFromInput"
+                                type="text" 
+                                placeholder="Kirjoita uusi tagi (esim. Syksy, Metalli)..." 
+                                class="bg-brand-bg px-3.5 py-2 rounded-xl border border-brand-border text-xs text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 flex-grow">
+                            <button @click="addTagFromInput" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-xl">
+                                Lisää tagi
+                            </button>
+                        </div>
+
+                        <div class="flex flex-wrap gap-1.5 pt-1">
+                            <span class="text-[11px] text-gray-500 flex items-center mr-1">Suosikit:</span>
+                            <button 
+                                v-for="presetTag in presetTags" 
+                                :key="presetTag" 
+                                @click="addPresetTag(presetTag)"
+                                class="px-2.5 py-1 bg-brand-bg hover:bg-gray-800 text-gray-300 text-[11px] rounded-lg border border-brand-border transition-all">
+                                + {{ presetTag }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pikatoiminnot -->
+                <div class="flex flex-wrap items-center justify-between gap-3 bg-brand-card/60 p-4 rounded-2xl border border-brand-border/40 text-xs">
+                    <span class="text-gray-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-info text-emerald-400"></i>
+                        Pisteytä biisit (1–5★), merkitse levyn helmet (🔥) tai ohita introt (🚫).
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <button @click="quickRateAll(5)" class="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg border border-brand-border transition-all">
+                            Kaikki 5★
+                        </button>
+                        <button @click="resetCurrentRatings" class="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-red-400 rounded-lg border border-brand-border transition-all">
+                            Tyhjennä
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Kappalelista arviointia varten -->
+                <div class="bg-brand-card rounded-3xl border border-brand-border shadow-xl overflow-hidden">
+                    <div class="p-4 sm:p-6 border-b border-brand-border flex items-center justify-between">
+                        <h2 class="text-base sm:text-lg font-extrabold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-list-ol text-emerald-400"></i>
+                            <span>Kappalekohtainen pisteytys</span>
+                        </h2>
+                        <span class="text-xs text-gray-400 font-mono">{{ currentAlbum.tracks.length }} raitaa</span>
+                    </div>
+
+                    <div class="divide-y divide-brand-border/40">
+                        <div 
+                            v-for="(track, index) in currentAlbum.tracks" 
+                            :key="index"
+                            :class="trackRatings[index].excluded ? 'bg-black/40 opacity-50' : 'hover:bg-brand-cardHover/50'"
+                            class="p-3.5 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 transition-colors">
+                            
+                            <!-- Biisin nimi & kesto -->
+                            <div class="flex items-center gap-3 flex-grow min-w-0">
+                                <span class="w-6 text-right font-mono text-xs text-gray-500 flex-shrink-0">
+                                    {{ index + 1 }}.
+                                </span>
+                                <div class="min-w-0 flex-grow">
+                                    <div class="flex items-center gap-2">
+                                        <p 
+                                            :class="trackRatings[index].excluded ? 'line-through text-gray-500' : 'text-white font-medium'"
+                                            class="text-xs sm:text-sm truncate">
+                                            {{ track.title }}
+                                        </p>
+                                        <!-- Levyn helmi merkki -->
+                                        <span v-if="trackRatings[index].highlight" class="px-1.5 py-0.5 text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded font-bold uppercase flex items-center gap-1">
+                                            <i class="fa-solid fa-fire"></i> Helmi
+                                        </span>
+                                        <span v-if="trackRatings[index].excluded" class="px-1.5 py-0.5 text-[9px] bg-red-900/40 text-red-400 border border-red-500/30 rounded font-semibold uppercase">
+                                            Ohitettu
+                                        </span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-500 font-mono">{{ track.duration }}</p>
+                                </div>
+                            </div>
+
+                            <!-- Toiminnot: Helmi, Ohitus & Tähdet -->
+                            <div class="flex items-center justify-between sm:justify-end gap-2 flex-shrink-0">
+                                <!-- Helmi-nappi (Highlight) -->
+                                <button 
+                                    @click="toggleHighlightTrack(index)"
+                                    :title="trackRatings[index].highlight ? 'Poista helmimerkintä' : 'Merkitse levyn helmeksi (suosikkiraita)'"
+                                    :class="trackRatings[index].highlight ? 'bg-amber-500 text-black font-extrabold border-amber-400' : 'bg-gray-800 text-gray-400 hover:text-amber-400 border-brand-border'"
+                                    class="p-2 rounded-xl border text-xs flex items-center justify-center transition-all">
+                                    <i class="fa-solid fa-fire text-sm"></i>
+                                </button>
+
+                                <!-- Ohitus-nappi -->
+                                <button 
+                                    @click="toggleExcludeTrack(index)"
+                                    :title="trackRatings[index].excluded ? 'Ota mukaan laskuihin' : 'Jätä pois keskiarvolaskusta'"
+                                    :class="trackRatings[index].excluded ? 'bg-red-500/20 text-red-400 border-red-500/40' : 'bg-gray-800 text-gray-400 hover:text-white border-brand-border'"
+                                    class="px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1 transition-all">
+                                    <i :class="trackRatings[index].excluded ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
+                                    <span class="text-[11px] hidden sm:inline">{{ trackRatings[index].excluded ? 'Pois' : 'Mukana' }}</span>
+                                </button>
+
+                                <!-- Tähdet -->
+                                <div class="flex items-center gap-1 bg-brand-bg/80 px-3 py-1.5 rounded-xl border border-brand-border/60">
+                                    <template v-if="!trackRatings[index].excluded">
+                                        <div 
+                                            v-for="star in 5" 
+                                            :key="star" 
+                                            class="star-box text-lg sm:text-xl"
+                                            title="Klikkaa tähteä">
+                                            <div class="star-left" @click="setTrackRating(index, star - 0.5)"></div>
+                                            <div class="star-right" @click="setTrackRating(index, star)"></div>
+
+                                            <i v-if="trackRatings[index].score >= star" class="fa-solid fa-star text-amber-400"></i>
+                                            <i v-else-if="trackRatings[index].score >= star - 0.5" class="fa-solid fa-star-half-stroke text-amber-400"></i>
+                                            <i v-else class="fa-regular fa-star text-gray-600"></i>
+                                        </div>
+
+                                        <span class="ml-1.5 font-mono font-bold text-xs w-7 text-right text-amber-400">
+                                            {{ trackRatings[index].score ? trackRatings[index].score.toFixed(1) : '-' }}
+                                        </span>
+                                    </template>
+                                    <template v-else>
+                                        <span class="text-xs text-gray-500 italic py-0.5 px-2">Ei arvioida</span>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Muistiinpanot -->
+                <div class="bg-brand-card p-5 sm:p-6 rounded-3xl border border-brand-border shadow-xl space-y-3">
+                    <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-pen-to-square text-emerald-400"></i>
+                        <span>Sanallinen arvio & Kuuntelupäiväkirja</span>
+                    </h3>
+                    <textarea 
+                        v-model="reviewNotes" 
+                        rows="4" 
+                        placeholder="Kirjoita ajatuksiasi levyn tunnelmasta, suosikkibiiseistä, miksauksesta tai kuunteluhetkestä..."
+                        class="w-full bg-brand-bg p-3.5 rounded-2xl border border-brand-border text-white text-sm placeholder-gray-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"></textarea>
+                </div>
+
+                <!-- TALLENNA ARVIOINTI -->
+                <div class="flex justify-end pt-2">
+                    <button 
+                        @click="saveCurrentRating" 
+                        class="w-full sm:w-auto px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-base rounded-2xl shadow-xl shadow-emerald-950/60 flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-95">
+                        <i class="fa-solid fa-floppy-disk text-lg"></i>
+                        <span>Tallenna arviointi</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- TAB 3: KUUNTELUJONO (TO-LISTEN BACKLOG) -->
+            <section v-if="activeTab === 'queue'" class="space-y-6">
+                <div class="bg-brand-card p-5 sm:p-6 rounded-3xl border border-brand-border shadow-xl flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-clock text-amber-400"></i>
+                            <span>Kuuntelujono</span>
+                        </h2>
+                        <p class="text-xs text-gray-400">Levyt jotka odottavat kuuntelua ja arviointia.</p>
+                    </div>
+                    <span class="px-3 py-1 bg-amber-500/10 text-amber-400 text-xs font-mono font-bold rounded-full border border-amber-500/30">
+                        {{ queue.length }} albumia
+                    </span>
+                </div>
+
+                <div v-if="queue.length === 0" class="text-center py-16 bg-brand-card/30 rounded-3xl border border-dashed border-brand-border">
+                    <i class="fa-solid fa-headphones text-4xl text-gray-600 mb-3"></i>
+                    <h3 class="text-base font-bold text-gray-300">Kuuntelujono on tyhjä</h3>
+                    <p class="text-gray-500 text-xs mt-1 mb-4">Etsi levyjä Spotifysta ja lisää ne jonoon odottamaan.</p>
+                    <button @click="activeTab = 'search'" class="px-5 py-2.5 bg-emerald-500 text-black font-bold text-xs rounded-xl shadow-lg">
+                        Etsi levyjä
+                    </button>
+                </div>
+
+                <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div 
+                        v-for="album in queue" 
+                        :key="album.id" 
+                        class="bg-brand-card p-4 rounded-2xl border border-brand-border shadow-lg flex items-center gap-4 justify-between">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <img :src="album.coverUrl" :alt="album.title" class="w-16 h-16 rounded-xl object-cover shadow border border-brand-border flex-shrink-0 bg-gray-900" @error="handleImageError">
+                            <div class="min-w-0">
+                                <h4 class="font-bold text-white text-sm truncate" :title="album.title">{{ album.title }}</h4>
+                                <p class="text-xs text-gray-400 truncate" :title="album.artist">{{ album.artist }}</p>
+                                <p class="text-[11px] text-gray-500 mt-0.5">{{ album.year }}</p>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-2 flex-shrink-0">
+                            <button 
+                                @click="startRatingFromQueue(album)" 
+                                class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-xl shadow transition-colors flex items-center gap-1">
+                                <i class="fa-solid fa-star"></i> Arvioi
+                            </button>
+                            <button 
+                                @click="removeFromQueue(album.id)" 
+                                class="px-3 py-1 text-gray-400 hover:text-red-400 text-xs font-medium transition-colors">
+                                Poista
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: ARVIOIDUT LEVYT (KOKOELMA & RANKING) -->
+            <section v-if="activeTab === 'my-ratings'" class="space-y-6">
+                <!-- SUODATUS, HAKU & JÄRJESTYS -->
+                <div class="bg-brand-card p-4 sm:p-6 rounded-3xl border border-brand-border shadow-xl space-y-4">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                        <div>
+                            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-compact-disc text-emerald-400"></i>
+                                <span>Levykokoelma & Ranking</span>
+                            </h2>
+                            <p class="text-xs text-gray-400">Selaa, suodata ja vertaile kaikkia arvioimiasi levyjä.</p>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                            <div class="relative flex-grow sm:flex-grow-0">
+                                <input 
+                                    v-model="savedSearchQuery" 
+                                    type="text" 
+                                    placeholder="Etsi omista..." 
+                                    class="w-full sm:w-44 bg-brand-bg pl-8 pr-3 py-2 rounded-xl border border-brand-border text-xs text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500">
+                                <i class="fa-solid fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
+                            </div>
+
+                            <select 
+                                v-model="savedSortBy" 
+                                class="bg-brand-bg border border-brand-border text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                                <option value="overall-desc">Tunnelma (Paras ensin)</option>
+                                <option value="track-desc">Biisien keskiarvo (Paras ensin)</option>
+                                <option value="date-desc">Viimeksi arvioitu</option>
+                                <option value="artist-asc">Artisti A-Ö</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Tag-Suodatuspalkki -->
+                    <div v-if="allUsedTags.length > 0" class="pt-2 border-t border-brand-border/40 flex items-center gap-2 overflow-x-auto pb-1">
+                        <span class="text-[11px] text-gray-400 flex-shrink-0">Suodata tagilla:</span>
+                        <button 
+                            @click="selectedTagFilter = ''" 
+                            :class="selectedTagFilter === '' ? 'bg-emerald-500 text-black font-bold' : 'bg-brand-bg text-gray-300 border-brand-border'"
+                            class="px-2.5 py-1 text-[11px] rounded-lg border transition-all flex-shrink-0">
+                            Kaikki ({{ savedRatings.length }})
+                        </button>
+                        <button 
+                            v-for="t in allUsedTags" 
+                            :key="t" 
+                            @click="selectedTagFilter = t"
+                            :class="selectedTagFilter === t ? 'bg-emerald-500 text-black font-bold' : 'bg-brand-bg text-gray-300 border-brand-border'"
+                            class="px-2.5 py-1 text-[11px] rounded-lg border transition-all flex-shrink-0">
+                            #{{ t }}
+                        </button>
+                    </div>
+                </div>
+
+                <div v-if="filteredSavedRatings.length === 0" class="text-center py-16 bg-brand-card/30 rounded-3xl border border-dashed border-brand-border">
+                    <i class="fa-solid fa-folder-open text-4xl text-gray-600 mb-3"></i>
+                    <h3 class="text-base font-bold text-gray-300">Ei arvioituja levyjä hakuehdoilla</h3>
+                    <p class="text-gray-500 text-xs mt-1 mb-4">Arvioi uusia levyjä tai nollaa hakusuodattimet.</p>
+                    <button @click="selectedTagFilter = ''; savedSearchQuery = ''; activeTab = 'search'" class="px-5 py-2.5 bg-emerald-500 text-black font-bold text-xs rounded-xl shadow-lg">
+                        Siirry arvioimaan
+                    </button>
+                </div>
+
+                <!-- ARVIOITUJEN LEVYJEN RUUDUKKO -->
+                <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <div 
+                        v-for="(item, rankIndex) in filteredSavedRatings" 
+                        :key="item.album.id" 
+                        class="bg-brand-card hover:bg-brand-cardHover rounded-3xl border border-brand-border overflow-hidden shadow-xl flex flex-col justify-between transition-all duration-300 group relative">
+                        
+                        <!-- Ranking-numero -->
+                        <div class="absolute top-3 left-3 z-10 w-7 h-7 bg-black/80 backdrop-blur-md rounded-full border border-brand-border text-xs font-mono font-bold text-emerald-400 flex items-center justify-center shadow">
+                            #{{ rankIndex + 1 }}
+                        </div>
+
+                        <div class="p-5 space-y-4">
+                            <!-- Kansi + Tiedot + Arvosanat -->
+                            <div class="flex gap-4 items-start pl-6">
+                                <img 
+                                    :src="item.album.coverUrl" 
+                                    :alt="item.album.title" 
+                                    class="w-20 h-20 rounded-2xl object-cover shadow-md border border-brand-border flex-shrink-0 bg-gray-900" 
+                                    @error="handleImageError">
+                                <div class="min-w-0 flex-grow">
+                                    <h3 class="font-bold text-white text-sm sm:text-base truncate group-hover:text-emerald-400 transition-colors" :title="item.album.title">
+                                        {{ item.album.title }}
+                                    </h3>
+                                    <p class="text-xs text-gray-400 truncate" :title="item.album.artist">{{ item.album.artist }}</p>
+                                    <p class="text-[11px] text-gray-500 mt-0.5">{{ item.album.year }} • {{ item.album.tracks.length }} biisiä</p>
+
+                                    <!-- MOLEMMAT ARVOSANAT -->
+                                    <div class="mt-2.5 flex items-center gap-2">
+                                        <div class="bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-md flex items-center gap-1" title="Oma kokonaisarvosana (Tunnelma)">
+                                            <i class="fa-solid fa-heart text-amber-400 text-[10px]"></i>
+                                            <span class="text-xs font-black font-mono text-amber-400">{{ item.overallScore ? item.overallScore.toFixed(1) : '-' }}</span>
+                                        </div>
+                                        <div class="bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-md flex items-center gap-1" title="Biisien keskiarvo">
+                                            <i class="fa-solid fa-calculator text-emerald-400 text-[10px]"></i>
+                                            <span class="text-xs font-black font-mono text-emerald-400">{{ item.trackAverage }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Levyn Helmet (Highlights) -->
+                            <div v-if="getHighlightsForItem(item).length > 0" class="bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-2xl space-y-1">
+                                <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                                    <i class="fa-solid fa-fire text-amber-400"></i> Levyn helmet:
+                                </span>
+                                <div class="flex flex-wrap gap-1">
+                                    <span v-for="hTrack in getHighlightsForItem(item)" :key="hTrack.title" class="text-[11px] text-amber-200 font-medium bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-500/30">
+                                        ★ {{ hTrack.title }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Tagit -->
+                            <div v-if="item.tags && item.tags.length > 0" class="flex flex-wrap gap-1">
+                                <span 
+                                    v-for="tag in item.tags" 
+                                    :key="tag" 
+                                    @click.stop="selectedTagFilter = tag"
+                                    class="px-2 py-0.5 bg-brand-bg hover:bg-emerald-500/20 text-gray-300 hover:text-emerald-400 text-[10px] rounded-md border border-brand-border/60 transition-colors cursor-pointer">
+                                    #{{ tag }}
+                                </span>
+                            </div>
+
+                            <!-- Muistiinpanot -->
+                            <p v-if="item.notes" class="text-xs text-gray-300 bg-brand-bg/60 p-3 rounded-2xl border border-brand-border/40 italic line-clamp-3">
+                                "{{ item.notes }}"
+                            </p>
+                        </div>
+
+                        <!-- Kortin alatunniste -->
+                        <div class="px-5 py-3 bg-brand-bg/60 border-t border-brand-border/40 flex items-center justify-between text-xs text-gray-400">
+                            <span class="text-[11px]">{{ formatDate(item.updatedAt) }}</span>
+                            
+                            <div class="flex items-center gap-3">
+                                <a v-if="getSpotifyUrl(item.album)" :href="getSpotifyUrl(item.album)" target="_blank" class="text-emerald-400 hover:underline flex items-center gap-1 text-xs">
+                                    <i class="fa-brands fa-spotify"></i> Spotify
+                                </a>
+                                <button @click="editRating(item)" class="text-gray-400 hover:text-emerald-400 transition-colors text-xs font-semibold">
+                                    <i class="fa-solid fa-pen"></i> Muokkaa
+                                </button>
+                                <button @click="deleteRatingPrompt(item.album.id)" class="text-gray-400 hover:text-red-400 transition-colors">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 5: VUOSIKATSAUS & TILASTOT -->
+            <section v-if="activeTab === 'stats'" class="space-y-6">
+                <!-- Yhteenvetokortit -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                    <div class="bg-brand-card p-4 rounded-2xl border border-brand-border shadow-lg flex items-center gap-3.5">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg flex-shrink-0">
+                            <i class="fa-solid fa-compact-disc"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Arvioidut levyt</p>
+                            <p class="text-xl font-black font-mono text-white">{{ savedRatings.length }}</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-brand-card p-4 rounded-2xl border border-brand-border shadow-lg flex items-center gap-3.5">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg flex-shrink-0">
+                            <i class="fa-solid fa-heart"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Keski-Tunnelma</p>
+                            <p class="text-xl font-black font-mono text-amber-400">{{ collectionOverallAverage }}</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-brand-card p-4 rounded-2xl border border-brand-border shadow-lg flex items-center gap-3.5">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg flex-shrink-0">
+                            <i class="fa-solid fa-calculator"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Biisien Keskiarvo</p>
+                            <p class="text-xl font-black font-mono text-emerald-400">{{ collectionTrackAverage }}</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-brand-card p-4 rounded-2xl border border-brand-border shadow-lg flex items-center gap-3.5">
+                        <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-lg flex-shrink-0">
+                            <i class="fa-solid fa-list-check"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Arvioidut biisit</p>
+                            <p class="text-xl font-black font-mono text-purple-300">{{ totalRatedTracksCount }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TOP 5 PODIUM -->
+                <div class="bg-brand-card p-6 rounded-3xl border border-brand-border shadow-xl space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-trophy text-amber-400"></i>
+                            <span>Top 5 Parhaat Albumit</span>
+                        </h2>
+                        <div class="flex gap-2 text-xs">
+                            <button 
+                                @click="podiumMetric = 'overall'" 
+                                :class="podiumMetric === 'overall' ? 'bg-amber-500 text-black font-bold' : 'bg-brand-bg text-gray-300 border-brand-border'"
+                                class="px-3 py-1.5 rounded-lg border transition-all">
+                                Tunnelman mukaan
+                            </button>
+                            <button 
+                                @click="podiumMetric = 'track'" 
+                                :class="podiumMetric === 'track' ? 'bg-emerald-500 text-black font-bold' : 'bg-brand-bg text-gray-300 border-brand-border'"
+                                class="px-3 py-1.5 rounded-lg border transition-all">
+                                Biisien keskiarvon mukaan
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-5 gap-3 pt-2">
+                        <div 
+                            v-for="(topItem, index) in top5Albums" 
+                            :key="topItem.album.id"
+                            class="bg-brand-bg/80 p-4 rounded-2xl border border-brand-border flex sm:flex-col items-center justify-between text-center gap-3 relative">
+                            <div class="absolute -top-2 -left-2 w-7 h-7 rounded-full bg-amber-500 text-black font-black text-xs flex items-center justify-center shadow">
+                                #{{ index + 1 }}
+                            </div>
+                            <img :src="topItem.album.coverUrl" :alt="topItem.album.title" class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shadow border border-brand-border flex-shrink-0" @error="handleImageError">
+                            <div class="min-w-0 flex-grow text-left sm:text-center">
+                                <h4 class="font-bold text-white text-xs truncate" :title="topItem.album.title">{{ topItem.album.title }}</h4>
+                                <p class="text-[11px] text-gray-400 truncate">{{ topItem.album.artist }}</p>
+                                <p class="text-sm font-black font-mono text-amber-400 mt-1">
+                                    ★ {{ podiumMetric === 'overall' ? topItem.overallScore.toFixed(1) : topItem.trackAverage }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAG-JAKAUUTU -->
+                <div class="bg-brand-card p-6 rounded-3xl border border-brand-border shadow-xl space-y-4">
+                    <h2 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-chart-bar text-emerald-400"></i>
+                        <span>Käytetyimmät tagit ja teemat</span>
+                    </h2>
+
+                    <div v-if="tagUsageBreakdown.length === 0" class="text-xs text-gray-500 italic">
+                        Ei tageja lisättynä vielä.
+                    </div>
+
+                    <div v-else class="space-y-3">
+                        <div v-for="tagStat in tagUsageBreakdown" :key="tagStat.tag" class="space-y-1">
+                            <div class="flex justify-between text-xs font-semibold">
+                                <span class="text-emerald-300">#{{ tagStat.tag }}</span>
+                                <span class="text-gray-400 font-mono">{{ tagStat.count }} levyä</span>
+                            </div>
+                            <div class="w-full bg-brand-bg h-2.5 rounded-full overflow-hidden border border-brand-border/60">
+                                <div class="bg-emerald-500 h-full rounded-full transition-all duration-500" :style="{ width: tagStat.percentage + '%' }"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- MOBIILIN ALAREUNAN NAVIGAATIO -->
+        <nav class="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-brand-card/95 backdrop-blur-lg border-t border-brand-border flex justify-around p-2 shadow-2xl">
+            <button 
+                @click="activeTab = 'search'" 
+                :class="activeTab === 'search' ? 'text-emerald-400 font-bold' : 'text-gray-400'"
+                class="flex flex-col items-center py-1 px-2 text-xs gap-1">
+                <i class="fa-solid fa-magnifying-glass text-lg"></i>
+                <span>Hae</span>
+            </button>
+
+            <button 
+                @click="activeTab = 'queue'" 
+                :class="activeTab === 'queue' ? 'text-emerald-400 font-bold' : 'text-gray-400'"
+                class="flex flex-col items-center py-1 px-2 text-xs gap-1 relative">
+                <i class="fa-solid fa-clock text-lg"></i>
+                <span>Jono</span>
+                <span v-if="queue.length > 0" class="absolute top-0 right-1 w-4 h-4 bg-amber-500 text-black font-mono font-bold text-[10px] rounded-full flex items-center justify-center">
+                    {{ queue.length }}
+                </span>
+            </button>
+
+            <button 
+                @click="activeTab = 'my-ratings'" 
+                :class="activeTab === 'my-ratings' ? 'text-emerald-400 font-bold' : 'text-gray-400'"
+                class="flex flex-col items-center py-1 px-2 text-xs gap-1 relative">
+                <i class="fa-solid fa-compact-disc text-lg"></i>
+                <span>Arvioidut</span>
+                <span v-if="savedRatings.length > 0" class="absolute top-0 right-1 w-4 h-4 bg-emerald-500 text-black font-mono font-bold text-[10px] rounded-full flex items-center justify-center">
+                    {{ savedRatings.length }}
+                </span>
+            </button>
+
+            <button 
+                @click="activeTab = 'stats'" 
+                :class="activeTab === 'stats' ? 'text-emerald-400 font-bold' : 'text-gray-400'"
+                class="flex flex-col items-center py-1 px-2 text-xs gap-1">
+                <i class="fa-solid fa-chart-pie text-lg"></i>
+                <span>Tilastot</span>
+            </button>
+
+            <button 
+                @click="showSettingsModal = true" 
+                class="flex flex-col items-center py-1 px-2 text-xs gap-1 text-gray-400">
+                <i class="fa-solid fa-gear text-lg"></i>
+                <span>Asetukset</span>
+            </button>
+        </nav>
+
+        <!-- MODAALI 1: MANUAALINEN LEVYN LISÄYS -->
+        <div v-if="showManualModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+            <div class="bg-brand-card border border-brand-border max-w-lg w-full rounded-3xl shadow-2xl p-6 space-y-5 my-8">
+                <div class="flex justify-between items-center border-b border-brand-border pb-3">
+                    <h3 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-plus-circle text-emerald-400"></i>
+                        <span>Lisää albumi manuaalisesti</span>
+                    </h3>
+                    <button @click="showManualModal = false" class="text-gray-400 hover:text-white">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <label class="block font-semibold text-gray-300 mb-1">Artistin nimi *</label>
+                        <input v-model="manualAlbum.artist" type="text" placeholder="esim. Pariisin Kevät" class="w-full bg-brand-bg px-3.5 py-2.5 rounded-xl border border-brand-border text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-gray-300 mb-1">Levyn nimi *</label>
+                        <input v-model="manualAlbum.title" type="text" placeholder="esim. Jossain on tie outoon huomiseen" class="w-full bg-brand-bg px-3.5 py-2.5 rounded-xl border border-brand-border text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-semibold text-gray-300 mb-1">Julkaisuvuosi</label>
+                            <input v-model="manualAlbum.year" type="text" placeholder="2024" class="w-full bg-brand-bg px-3.5 py-2.5 rounded-xl border border-brand-border text-white focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-gray-300 mb-1">Kansikuvan URL</label>
+                            <input v-model="manualAlbum.coverUrl" type="text" placeholder="https://..." class="w-full bg-brand-bg px-3.5 py-2.5 rounded-xl border border-brand-border text-white focus:outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-gray-300 mb-1">
+                            Kappaleet (Yksi per rivi, kesto pilkulla esim: Saari, 3:45)
+                        </label>
+                        <textarea v-model="manualAlbum.rawTracks" rows="4" placeholder="Kappale 1, 3:30&#10;Kappale 2, 4:15" class="w-full bg-brand-bg p-3 rounded-xl border border-brand-border text-white font-mono focus:outline-none focus:border-emerald-500"></textarea>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-3 border-t border-brand-border">
+                    <button @click="showManualModal = false" class="px-4 py-2 bg-gray-800 text-gray-300 text-xs font-semibold rounded-xl">
+                        Peruuta
+                    </button>
+                    <button @click="saveManualAlbum" class="px-5 py-2 bg-emerald-500 text-black text-xs font-bold rounded-xl hover:bg-emerald-400">
+                        Luo ja arvioi
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAALI 2: ASETUKSET, GITHUB PILVISYNKRONOINTI & VARMUUSKOPIOT -->
+        <div v-if="showSettingsModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+            <div class="bg-brand-card border border-brand-border max-w-lg w-full rounded-3xl shadow-2xl p-6 space-y-5 my-6">
+                <div class="flex justify-between items-center border-b border-brand-border pb-3">
+                    <h3 class="text-base font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-gear text-emerald-400"></i>
+                        <span>Asetukset & Synkronointi</span>
+                    </h3>
+                    <button @click="showSettingsModal = false" class="text-gray-400 hover:text-white">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- GITHUB GIST PILVISYNKRONOINTI -->
+                <div class="bg-brand-bg/90 p-4 rounded-2xl border border-purple-500/30 space-y-3 text-xs">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-bold text-purple-300 flex items-center gap-1.5">
+                            <i class="fa-brands fa-github text-base"></i> GitHub Gist -Pilvisynkronointi
+                        </h4>
+                        <span :class="githubToken ? 'text-emerald-400' : 'text-gray-500'" class="font-mono font-bold">
+                            {{ githubToken ? 'Aktiivinen' : 'Ei käytössä' }}
+                        </span>
+                    </div>
+                    <p class="text-gray-300">
+                        Pidä puhelin ja tietokone synkassa ilman ulkopuolisia palveluita luomalla ilmainen GitHub Token (`gist`-oikeudella).
+                    </p>
+
+                    <div class="space-y-2">
+                        <input v-model="githubToken" type="password" placeholder="GitHub Personal Access Token (ghp_...)" class="w-full bg-brand-card px-3.5 py-2 rounded-xl border border-brand-border text-white font-mono focus:outline-none focus:border-purple-500">
+                        
+                        <div class="flex gap-2 pt-1">
+                            <button @click="syncToGist" :disabled="!githubToken || isSyncing" class="flex-1 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 disabled:opacity-50">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                                <span>{{ isSyncing ? 'Tallennetaan...' : 'Tallenna pilveen' }}</span>
+                            </button>
+                            <button @click="fetchFromGist" :disabled="!githubToken || isSyncing" class="flex-1 py-2 bg-brand-card hover:bg-gray-800 text-purple-300 font-bold border border-purple-500/40 rounded-xl flex items-center justify-center gap-1.5 disabled:opacity-50">
+                                <i class="fa-solid fa-cloud-arrow-down"></i>
+                                <span>Hae pilvestä</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SPOTIFY API -TUNNUKSET -->
+                <div class="space-y-3 text-xs">
+                    <h4 class="font-bold text-white flex items-center gap-1.5">
+                        <i class="fa-brands fa-spotify text-emerald-400"></i> Spotify Web API -tunnukset
+                    </h4>
+                    <p class="text-gray-400">Ilmaiset tunnukset reaaliaikaiseen Spotify-hakuun (developer.spotify.com).</p>
+
+                    <div>
+                        <label class="block font-semibold text-gray-300 mb-1">Client ID</label>
+                        <input v-model="spotifyClientId" type="text" placeholder="Client ID..." class="w-full bg-brand-bg px-3.5 py-2 rounded-xl border border-brand-border text-white focus:outline-none focus:border-emerald-500 font-mono">
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-gray-300 mb-1">Client Secret</label>
+                        <input v-model="spotifyClientSecret" type="password" placeholder="••••••••••••••••" class="w-full bg-brand-bg px-3.5 py-2 rounded-xl border border-brand-border text-white focus:outline-none focus:border-emerald-500 font-mono">
+                    </div>
+                </div>
+
+                <!-- OMA KUVAKE & SOVELLUSKUVAKKEEN LATAUS -->
+                <div class="bg-brand-bg/80 p-4 rounded-2xl border border-brand-border space-y-2 text-xs">
+                    <h4 class="font-bold text-amber-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-image"></i> Sovelluskuvake (PWA & iOS)
+                    </h4>
+                    <p class="text-gray-300">
+                        Sovellus generoi automaattisesti terävän metallisen kuvakkeen. Halutessasi voit ladata sen tiedostona koneellesi:
+                    </p>
+                    <button @click="downloadIconPNG" class="px-3.5 py-2 bg-gray-800 hover:bg-gray-700 text-amber-300 font-bold rounded-xl border border-amber-500/30 flex items-center gap-2">
+                        <i class="fa-solid fa-download"></i> Lataa kuvake (icon.png)
+                    </button>
+                </div>
+
+                <!-- JSON Varmuuskopiot -->
+                <div class="pt-3 border-t border-brand-border space-y-2 text-xs">
+                    <h4 class="font-bold text-white flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-export text-emerald-400"></i> Perinteinen JSON-varmuuskopiointi
+                    </h4>
+                    <div class="flex flex-wrap gap-2 pt-1">
+                        <button @click="exportRatingsJSON" class="px-3.5 py-2 bg-brand-bg hover:bg-gray-800 text-gray-200 rounded-xl border border-brand-border flex items-center gap-1.5">
+                            <i class="fa-solid fa-download text-emerald-400"></i> Vie JSON
+                        </button>
+                        <label class="px-3.5 py-2 bg-brand-bg hover:bg-gray-800 text-gray-200 rounded-xl border border-brand-border flex items-center gap-1.5 cursor-pointer">
+                            <i class="fa-solid fa-upload text-amber-400"></i> Tuo JSON
+                            <input type="file" accept=".json" @change="importRatingsJSON" class="hidden">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center pt-3 border-t border-brand-border">
+                    <button @click="clearSettings" class="text-xs text-red-400 hover:underline">
+                        Tyhjennä asetukset
+                    </button>
+                    <button @click="saveSettings" class="px-5 py-2 bg-emerald-500 text-black text-xs font-bold rounded-xl hover:bg-emerald-400">
+                        Tallenna asetukset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAALI 3: POISTO-VAHVISTUS -->
+        <div v-if="deleteTargetId" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-brand-card border border-brand-border max-w-sm w-full rounded-3xl shadow-2xl p-6 text-center space-y-4">
+                <div class="w-12 h-12 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center mx-auto text-xl">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 class="text-base font-bold text-white">Poistetaanko tämä kohde?</h3>
+                <p class="text-xs text-gray-400">Tätä toimintoa ei voi peruuttaa.</p>
+                <div class="flex gap-3 justify-center pt-2">
+                    <button @click="deleteTargetId = null" class="px-4 py-2 bg-gray-800 text-gray-300 text-xs font-bold rounded-xl">
+                        Peruuta
+                    </button>
+                    <button @click="confirmDelete" class="px-4 py-2 bg-red-500 text-white text-xs font-bold rounded-xl hover:bg-red-600">
+                        Poista
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast-ilmoitus -->
+        <transition name="fade">
+            <div v-if="toastMessage" class="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-50 bg-emerald-500 text-black px-4 py-3 rounded-2xl font-bold text-xs sm:text-sm shadow-2xl flex items-center gap-2.5">
+                <i class="fa-solid fa-circle-check text-base"></i>
+                <span>{{ toastMessage }}</span>
+            </div>
+        </transition>
+
+        <!-- ALATUNNISTE -->
+        <footer class="hidden sm:block mt-12 pt-6 border-t border-brand-border/40 text-center text-xs text-gray-500 space-y-1">
+            <p class="font-semibold text-gray-400">Levyraati PWA • Musiikkipäiväkirja</p>
+            <p class="text-[11px] text-gray-600">Valmis asennettavaksi aloitusnäytölle.</p>
+        </footer>
+
+    </div>
+
+    <!-- VUE 3 APPLICATION SCRIPT -->
+    <script>
+        const { createApp, ref, computed, onMounted } = Vue;
+
+        const PRESET_TAGS = ['Klassikko', 'Mestariteos', 'Yökuuntelu', 'Lenkkimusa', 'Suomirock', 'Metalli', 'Tunnelmallinen', 'Bileet', 'Kokonaisuus'];
+
+        const PRESET_ALBUMS = [
+            {
+                id: 'preset-pariisin-kevat-satua',
+                title: 'Kaikki on satua',
+                artist: 'Pariisin Kevät',
+                year: '2012',
+                coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&auto=format&fit=crop&q=80',
+                tracks: [
+                    { title: "Kaikki on satua", duration: "3:45" },
+                    { title: "Saari", duration: "3:52" },
+                    { title: "Kesäyö", duration: "3:40" },
+                    { title: "Kevät", duration: "4:12" },
+                    { title: "Meren tähdet", duration: "4:05" },
+                    { title: "Oskari", duration: "3:31" },
+                    { title: "Rivien välistä", duration: "4:18" },
+                    { title: "Häikäisee", duration: "3:54" },
+                    { title: "Valonpisarat", duration: "4:15" },
+                    { title: "Viimeinen ilta", duration: "4:50" }
+                ]
+            },
+            {
+                id: 'preset-daft-punk-ram',
+                title: 'Random Access Memories',
+                artist: 'Daft Punk',
+                year: '2013',
+                coverUrl: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&auto=format&fit=crop&q=80',
+                tracks: [
+                    { title: "Give Life Back to Music", duration: "4:35" },
+                    { title: "The Game of Love", duration: "5:22" },
+                    { title: "Giorgio by Moroder", duration: "9:04" },
+                    { title: "Within", duration: "3:48" },
+                    { title: "Instant Crush (feat. Julian Casablancas)", duration: "5:37" },
+                    { title: "Lose Yourself to Dance", duration: "5:53" },
+                    { title: "Touch", duration: "8:18" },
+                    { title: "Get Lucky", duration: "6:09" },
+                    { title: "Beyond", duration: "4:50" },
+                    { title: "Fragments of Time", duration: "4:39" },
+                    { title: "Contact", duration: "6:21" }
+                ]
+            },
+            {
+                id: 'preset-pink-floyd-dsotm',
+                title: 'The Dark Side of the Moon',
+                artist: 'Pink Floyd',
+                year: '1973',
+                coverUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500&auto=format&fit=crop&q=80',
+                tracks: [
+                    { title: "Speak to Me", duration: "1:05" },
+                    { title: "Breathe (In the Air)", duration: "2:49" },
+                    { title: "On the Run", duration: "3:45" },
+                    { title: "Time", duration: "6:53" },
+                    { title: "The Great Gig in the Sky", duration: "4:44" },
+                    { title: "Money", duration: "6:22" },
+                    { title: "Us and Them", duration: "7:49" },
+                    { title: "Brain Damage", duration: "3:46" },
+                    { title: "Eclipse", duration: "2:10" }
+                ]
+            }
+        ];
+
+        const INITIAL_DEMO_RATINGS = [
+            {
+                album: PRESET_ALBUMS[0],
+                trackRatings: PRESET_ALBUMS[0].tracks.map((t, i) => ({ score: i % 2 === 0 ? 5 : 4.5, excluded: false, highlight: i === 1 })),
+                overallScore: 5.0,
+                trackAverage: "4.75",
+                tags: ['Suomirock', 'Mestariteos', 'Yökuuntelu'],
+                notes: 'Upea tunnelma koko levyn läpi. Saari on todellinen helmi.',
+                updatedAt: new Date().toISOString()
+            }
+        ];
+
+        createApp({
+            setup() {
+                const activeTab = ref('search');
+                const searchQuery = ref('');
+                const displayedAlbums = ref([...PRESET_ALBUMS]);
+                const isSearching = ref(false);
+                const isSpotifySearchResult = ref(false);
+
+                // Spotify API
+                const spotifyClientId = ref('');
+                const spotifyClientSecret = ref('');
+                const showSettingsModal = ref(false);
+
+                // GitHub Gist Cloud Sync
+                const githubToken = ref('');
+                const githubGistId = ref('');
+                const isSyncing = ref(false);
+
+                // Kuuntelujono & Tallennetut arviot
+                const queue = ref([]);
+                const savedRatings = ref([]);
+
+                // Manuaalinen lisäys
+                const showManualModal = ref(false);
+                const manualAlbum = ref({ artist: '', title: '', year: '2024', coverUrl: '', rawTracks: '' });
+
+                // Arviointitila
+                const currentAlbum = ref(null);
+                const trackRatings = ref([]);
+                const overallScore = ref(4.5);
+                const currentTags = ref([]);
+                const newTagInput = ref('');
+                const reviewNotes = ref('');
+                const isExistingRating = ref(false);
+
+                // Suodatus & Tilastot
+                const savedSortBy = ref('overall-desc');
+                const savedSearchQuery = ref('');
+                const selectedTagFilter = ref('');
+                const podiumMetric = ref('overall');
+
+                // Modaali & Toast
+                const deleteTargetId = ref(null);
+                const deleteTargetType = ref('rating'); // 'rating' tai 'queue'
+                const toastMessage = ref('');
+
+                onMounted(() => {
+                    // 1. Lataa LocalStorage
+                    const localSaved = localStorage.getItem('levyraati_saved_ratings');
+                    if (localSaved) {
+                        try { savedRatings.value = JSON.parse(localSaved); } catch (e) { savedRatings.value = INITIAL_DEMO_RATINGS; }
+                    } else {
+                        savedRatings.value = INITIAL_DEMO_RATINGS;
+                        localStorage.setItem('levyraati_saved_ratings', JSON.stringify(savedRatings.value));
+                    }
+
+                    const localQueue = localStorage.getItem('levyraati_queue');
+                    if (localQueue) {
+                        try { queue.value = JSON.parse(localQueue); } catch (e) { queue.value = []; }
+                    }
+
+                    spotifyClientId.value = localStorage.getItem('levyraati_spotify_id') || '';
+                    spotifyClientSecret.value = localStorage.getItem('levyraati_spotify_secret') || '';
+                    githubToken.value = localStorage.getItem('levyraati_github_token') || '';
+                    githubGistId.value = localStorage.getItem('levyraati_gist_id') || '';
+
+                    // 2. Generoi SVG -> Canvas -> PWA Ikonit
+                    generateDynamicPWAIcons();
+                });
+
+                const spotifyConfigured = computed(() => !!(spotifyClientId.value && spotifyClientSecret.value));
+                const presetTags = PRESET_TAGS;
+
+                // SVG ikonin luonti ja asetus
+                const generateDynamicPWAIcons = () => {
+                    setTimeout(() => {
+                        const svgElem = document.getElementById('app-logo-svg');
+                        if (!svgElem) return;
+
+                        const svgData = new XMLSerializer().serializeToString(svgElem);
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 512;
+                        canvas.height = 512;
+                        const ctx = canvas.getContext('2d');
+                        const img = new Image();
+
+                        img.onload = () => {
+                            ctx.drawImage(img, 0, 0, 512, 512);
+                            const pngUrl = canvas.toDataURL('image/png');
+
+                            // Aseta dynamisesti favicon & apple-icon
+                            document.getElementById('app-favicon').href = pngUrl;
+                            document.getElementById('app-apple-icon').href = pngUrl;
+
+                            // Luo dynaaminen PWA Manifest Data-URI
+                            const manifestObj = {
+                                name: "Levyraati",
+                                short_name: "Levyraati",
+                                description: "Täsmällinen albumipäiväkirja & musiikin arviointi",
+                                start_url: ".",
+                                display: "standalone",
+                                background_color: "#0b0f14",
+                                theme_color: "#10b981",
+                                icons: [
+                                    { src: pngUrl, sizes: "512x512", type: "image/png" },
+                                    { src: pngUrl, sizes: "180x180", type: "image/png" }
+                                ]
+                            };
+                            const manifestStr = "data:application/manifest+json;charset=utf-8," + encodeURIComponent(JSON.stringify(manifestObj));
+                            
+                            let manifestLink = document.querySelector('link[rel="manifest"]');
+                            if (!manifestLink) {
+                                manifestLink = document.createElement('link');
+                                manifestLink.rel = 'manifest';
+                                document.head.appendChild(manifestLink);
+                            }
+                            manifestLink.href = manifestStr;
+                        };
+
+                        img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+                    }, 300);
+                };
+
+                const downloadIconPNG = () => {
+                    const svgElem = document.getElementById('app-logo-svg');
+                    if (!svgElem) return;
+                    const svgData = new XMLSerializer().serializeToString(svgElem);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 512; canvas.height = 512;
+                    const ctx = canvas.getContext('2d');
+                    const img = new Image();
+                    img.onload = () => {
+                        ctx.drawImage(img, 0, 0, 512, 512);
+                        const a = document.createElement('a');
+                        a.download = 'icon.png';
+                        a.href = canvas.toDataURL('image/png');
+                        a.click();
+                        showToast('icon.png ladattu!');
+                    };
+                    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+                };
+
+                // Haku
+                const handleSearch = async () => {
+                    if (!searchQuery.value.trim()) { filterPresetAlbums(); return; }
+                    if (spotifyConfigured.value) { await searchSpotifyAlbums(); }
+                    else { filterPresetAlbums(); }
+                };
+
+                const filterPresetAlbums = () => {
+                    isSpotifySearchResult.value = false;
+                    const q = searchQuery.value.toLowerCase().trim();
+                    if (!q) { displayedAlbums.value = [...PRESET_ALBUMS]; return; }
+                    displayedAlbums.value = PRESET_ALBUMS.filter(a => a.title.toLowerCase().includes(q) || a.artist.toLowerCase().includes(q));
+                };
+
+                const searchSpotifyAlbums = async () => {
+                    isSearching.value = true;
+                    try {
+                        const authString = btoa(`${spotifyClientId.value.trim()}:${spotifyClientSecret.value.trim()}`);
+                        const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': `Basic ${authString}` },
+                            body: 'grant_type=client_credentials'
+                        });
+
+                        if (!tokenResponse.ok) throw new Error('Spotify-tunnistautuminen epäonnistui.');
+                        const tokenData = await tokenResponse.json();
+
+                        const searchRes = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(searchQuery.value)}&type=album&limit=12`, {
+                            headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
+                        });
+                        const searchData = await searchRes.json();
+
+                        if (searchData.albums && searchData.albums.items) {
+                            displayedAlbums.value = searchData.albums.items.map(item => ({
+                                id: item.id,
+                                title: item.name,
+                                artist: item.artists.map(a => a.name).join(', '),
+                                year: item.release_date ? item.release_date.substring(0, 4) : 'Tuntematon',
+                                coverUrl: item.images[0] ? item.images[0].url : 'https://placehold.co/400x400/18181b/ffffff?text=Kansi+puuttuu',
+                                spotifyId: item.id,
+                                spotifyUrl: item.external_urls ? item.external_urls.spotify : null,
+                                tracks: []
+                            }));
+                            isSpotifySearchResult.value = true;
+                        }
+                    } catch (err) {
+                        showToast(err.message || 'Virhe Spotify-haussa');
+                        filterPresetAlbums();
+                    } finally {
+                        isSearching.value = false;
+                    }
+                };
+
+                // Kuuntelujono toiminnot
+                const addToQueue = (album) => {
+                    if (isInQueue(album.id)) return;
+                    queue.value.push(album);
+                    localStorage.setItem('levyraati_queue', JSON.stringify(queue.value));
+                    showToast('Lisätty kuuntelujonoon!');
+                };
+
+                const removeFromQueue = (albumId) => {
+                    queue.value = queue.value.filter(a => a.id !== albumId);
+                    localStorage.setItem('levyraati_queue', JSON.stringify(queue.value));
+                    showToast('Poistettu jonosta.');
+                };
+
+                const isInQueue = (albumId) => queue.value.some(a => a.id === albumId);
+
+                const startRatingFromQueue = (album) => {
+                    selectAlbumToRate(album);
+                };
+
+                // Arviointinäkymään valinta
+                const selectAlbumToRate = async (album) => {
+                    let albumToUse = { ...album };
+
+                    if (albumToUse.spotifyId && albumToUse.tracks.length === 0 && spotifyConfigured.value) {
+                        try {
+                            const authString = btoa(`${spotifyClientId.value.trim()}:${spotifyClientSecret.value.trim()}`);
+                            const tokenRes = await fetch('https://accounts.spotify.com/api/token', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': `Basic ${authString}` },
+                                body: 'grant_type=client_credentials'
+                            });
+                            const tokenData = await tokenRes.json();
+                            const albumRes = await fetch(`https://api.spotify.com/v1/albums/${albumToUse.spotifyId}`, {
+                                headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
+                            });
+                            const albumData = await albumRes.json();
+                            albumToUse.tracks = albumData.tracks.items.map(t => ({
+                                title: t.name,
+                                duration: formatMsToMmSs(t.duration_ms)
+                            }));
+                            if (albumData.external_urls) albumToUse.spotifyUrl = albumData.external_urls.spotify;
+                        } catch (e) {
+                            showToast('Virhe biisilistan haussa');
+                        }
+                    }
+
+                    currentAlbum.value = albumToUse;
+
+                    const existing = savedRatings.value.find(r => r.album.id === albumToUse.id);
+                    if (existing) {
+                        trackRatings.value = JSON.parse(JSON.stringify(existing.trackRatings));
+                        overallScore.value = existing.overallScore || parseFloat(existing.trackAverage) || 4.0;
+                        currentTags.value = [...(existing.tags || [])];
+                        reviewNotes.value = existing.notes || '';
+                        isExistingRating.value = true;
+                    } else {
+                        trackRatings.value = albumToUse.tracks.map(() => ({ score: 0, excluded: false, highlight: false }));
+                        overallScore.value = 4.0;
+                        currentTags.value = [];
+                        reviewNotes.value = '';
+                        isExistingRating.value = false;
+                    }
+
+                    activeTab.value = 'rate';
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                };
+
+                // Kestolaskenta
+                const totalAlbumDuration = computed(() => {
+                    if (!currentAlbum.value || !currentAlbum.value.tracks) return '0 min';
+                    let totalSec = 0;
+                    currentAlbum.value.tracks.forEach(t => {
+                        if (t.duration && t.duration.includes(':')) {
+                            const parts = t.duration.split(':');
+                            totalSec += (parseInt(parts[0]) || 0) * 60 + (parseInt(parts[1]) || 0);
+                        }
+                    });
+                    return `${Math.floor(totalSec / 60)} min`;
+                });
+
+                // Laskettu keskiarvo
+                const calculatedAverage = computed(() => {
+                    if (!trackRatings.value || trackRatings.value.length === 0) return '0.00';
+                    let sum = 0, count = 0;
+                    trackRatings.value.forEach(t => {
+                        if (!t.excluded && t.score > 0) {
+                            sum += t.score; count++;
+                        }
+                    });
+                    if (count === 0) return '0.00';
+                    return (sum / count).toFixed(2);
+                });
+
+                const ratedTracksCount = computed(() => trackRatings.value.filter(t => !t.excluded && t.score > 0).length);
+
+                const scoreDiffText = computed(() => {
+                    const avg = parseFloat(calculatedAverage.value);
+                    if (isNaN(avg) || avg === 0 || !overallScore.value) return '';
+                    const diff = overallScore.value - avg;
+                    if (Math.abs(diff) < 0.05) return '(Vastaa keskiarvoa)';
+                    return diff > 0 ? `(+${diff.toFixed(2)} parempi fiilis)` : `(${diff.toFixed(2)} alle biisien ka.)`;
+                });
+
+                const scoreDiffClass = computed(() => {
+                    const avg = parseFloat(calculatedAverage.value);
+                    if (isNaN(avg) || avg === 0 || !overallScore.value) return 'text-gray-500';
+                    const diff = overallScore.value - avg;
+                    return diff >= 0 ? 'text-amber-400 font-semibold' : 'text-slate-400';
+                });
+
+                // Tähtien asetus & Helmi/Ohitus
+                const setTrackRating = (index, score) => {
+                    if (trackRatings.value[index].excluded) return;
+                    trackRatings.value[index].score = score;
+                };
+
+                const toggleExcludeTrack = (index) => {
+                    trackRatings.value[index].excluded = !trackRatings.value[index].excluded;
+                };
+
+                const toggleHighlightTrack = (index) => {
+                    trackRatings.value[index].highlight = !trackRatings.value[index].highlight;
+                };
+
+                const quickRateAll = (score) => {
+                    trackRatings.value.forEach(t => { if (!t.excluded) t.score = score; });
+                };
+
+                const resetCurrentRatings = () => {
+                    trackRatings.value.forEach(t => { t.score = 0; t.excluded = false; t.highlight = false; });
+                    overallScore.value = 4.0;
+                };
+
+                // Tag-hallinta
+                const addTagFromInput = () => {
+                    const tag = newTagInput.value.trim().replace(/^#/, '');
+                    if (tag && !currentTags.value.includes(tag)) currentTags.value.push(tag);
+                    newTagInput.value = '';
+                };
+
+                const addPresetTag = (tag) => {
+                    if (!currentTags.value.includes(tag)) currentTags.value.push(tag);
+                };
+
+                const removeTag = (index) => { currentTags.value.splice(index, 1); };
+
+                // Tallennus
+                const saveCurrentRating = () => {
+                    if (!currentAlbum.value) return;
+
+                    const newEntry = {
+                        album: currentAlbum.value,
+                        trackRatings: JSON.parse(JSON.stringify(trackRatings.value)),
+                        overallScore: overallScore.value,
+                        trackAverage: calculatedAverage.value,
+                        tags: [...currentTags.value],
+                        notes: reviewNotes.value,
+                        updatedAt: new Date().toISOString()
+                    };
+
+                    const idx = savedRatings.value.findIndex(r => r.album.id === currentAlbum.value.id);
+                    if (idx !== -1) savedRatings.value[idx] = newEntry;
+                    else savedRatings.value.push(newEntry);
+
+                    // Poista jonosta jos oli siellä
+                    queue.value = queue.value.filter(a => a.id !== currentAlbum.value.id);
+
+                    localStorage.setItem('levyraati_saved_ratings', JSON.stringify(savedRatings.value));
+                    localStorage.setItem('levyraati_queue', JSON.stringify(queue.value));
+
+                    // Jos Gist synkronointi käytössä, synkronoi automaattisesti taustalla
+                    if (githubToken.value) syncToGist();
+
+                    showToast('Albumiarviointi tallennettu!');
+                    activeTab.value = 'my-ratings';
+                };
+
+                // Suodatukset
+                const filteredSavedRatings = computed(() => {
+                    let list = [...savedRatings.value];
+
+                    if (selectedTagFilter.value) {
+                        list = list.filter(r => r.tags && r.tags.includes(selectedTagFilter.value));
+                    }
+
+                    if (savedSearchQuery.value.trim()) {
+                        const q = savedSearchQuery.value.toLowerCase().trim();
+                        list = list.filter(r => 
+                            r.album.title.toLowerCase().includes(q) || 
+                            r.album.artist.toLowerCase().includes(q) ||
+                            (r.notes && r.notes.toLowerCase().includes(q))
+                        );
+                    }
+
+                    if (savedSortBy.value === 'overall-desc') {
+                        return list.sort((a, b) => (b.overallScore || 0) - (a.overallScore || 0));
+                    } else if (savedSortBy.value === 'track-desc') {
+                        return list.sort((a, b) => parseFloat(b.trackAverage) - parseFloat(a.trackAverage));
+                    } else if (savedSortBy.value === 'date-desc') {
+                        return list.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+                    } else if (savedSortBy.value === 'artist-asc') {
+                        return list.sort((a, b) => a.album.artist.localeCompare(b.album.artist));
+                    }
+                    return list;
+                });
+
+                // Tilasto-laskennat
+                const collectionOverallAverage = computed(() => {
+                    if (savedRatings.value.length === 0) return '0.00';
+                    const sum = savedRatings.value.reduce((acc, curr) => acc + (curr.overallScore || 0), 0);
+                    return (sum / savedRatings.value.length).toFixed(2);
+                });
+
+                const collectionTrackAverage = computed(() => {
+                    if (savedRatings.value.length === 0) return '0.00';
+                    const sum = savedRatings.value.reduce((acc, curr) => acc + (parseFloat(curr.trackAverage) || 0), 0);
+                    return (sum / savedRatings.value.length).toFixed(2);
+                });
+
+                const totalRatedTracksCount = computed(() => {
+                    return savedRatings.value.reduce((acc, r) => {
+                        const count = r.trackRatings ? r.trackRatings.filter(t => !t.excluded && t.score > 0).length : 0;
+                        return acc + count;
+                    }, 0);
+                });
+
+                const top5Albums = computed(() => {
+                    let list = [...savedRatings.value];
+                    if (podiumMetric.value === 'overall') {
+                        list.sort((a, b) => (b.overallScore || 0) - (a.overallScore || 0));
+                    } else {
+                        list.sort((a, b) => parseFloat(b.trackAverage) - parseFloat(a.trackAverage));
+                    }
+                    return list.slice(0, 5);
+                });
+
+                const allUsedTags = computed(() => {
+                    const tagSet = new Set();
+                    savedRatings.value.forEach(r => { if (r.tags) r.tags.forEach(t => tagSet.add(t)); });
+                    return Array.from(tagSet);
+                });
+
+                const tagUsageBreakdown = computed(() => {
+                    const counts = {};
+                    savedRatings.value.forEach(r => {
+                        if (r.tags) r.tags.forEach(t => { counts[t] = (counts[t] || 0) + 1; });
+                    });
+                    const max = Math.max(...Object.values(counts), 1);
+                    return Object.entries(counts)
+                        .map(([tag, count]) => ({ tag, count, percentage: Math.round((count / max) * 100) }))
+                        .sort((a, b) => b.count - a.count);
+                });
+
+                const getHighlightsForItem = (item) => {
+                    if (!item.trackRatings || !item.album || !item.album.tracks) return [];
+                    return item.album.tracks.filter((t, i) => item.trackRatings[i] && item.trackRatings[i].highlight);
+                };
+
+                const getSavedRating = (albumId) => savedRatings.value.find(r => r.album.id === albumId);
+                const editRating = (item) => selectAlbumToRate(item.album);
+
+                const deleteRatingPrompt = (albumId) => {
+                    deleteTargetId.value = albumId;
+                    deleteTargetType.value = 'rating';
+                };
+
+                const confirmDelete = () => {
+                    if (!deleteTargetId.value) return;
+                    savedRatings.value = savedRatings.value.filter(r => r.album.id !== deleteTargetId.value);
+                    localStorage.setItem('levyraati_saved_ratings', JSON.stringify(savedRatings.value));
+                    deleteTargetId.value = null;
+                    if (githubToken.value) syncToGist();
+                    showToast('Arvio poistettu.');
+                };
+
+                // Manuaalinen lisäys
+                const openManualModal = () => {
+                    manualAlbum.value = { artist: '', title: '', year: '2024', coverUrl: '', rawTracks: '' };
+                    showManualModal.value = true;
+                };
+
+                const saveManualAlbum = () => {
+                    if (!manualAlbum.value.artist || !manualAlbum.value.title) {
+                        showToast('Täytä artistin ja levyn nimi.'); return;
+                    }
+                    const trackLines = manualAlbum.value.rawTracks.split('\n').filter(l => l.trim() !== '');
+                    const tracks = trackLines.map(line => {
+                        const parts = line.split(',');
+                        return { title: parts[0].trim(), duration: parts[1] ? parts[1].trim() : '3:30' };
+                    });
+                    if (tracks.length === 0) tracks.push({ title: 'Kappale 1', duration: '3:30' });
+
+                    const created = {
+                        id: 'custom-' + Date.now(),
+                        artist: manualAlbum.value.artist.trim(),
+                        title: manualAlbum.value.title.trim(),
+                        year: manualAlbum.value.year.trim() || '2024',
+                        coverUrl: manualAlbum.value.coverUrl.trim() || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&auto=format&fit=crop&q=80',
+                        tracks: tracks
+                    };
+
+                    showManualModal.value = false;
+                    selectAlbumToRate(created);
+                };
+
+                // GitHub Gist Synkronointi
+                const syncToGist = async () => {
+                    if (!githubToken.value) return;
+                    isSyncing.value = true;
+                    try {
+                        const contentData = JSON.stringify({
+                            ratings: savedRatings.value,
+                            queue: queue.value,
+                            updatedAt: new Date().toISOString()
+                        }, null, 2);
+
+                        const gistBody = {
+                            description: "Levyraati Sovelluksen Synkronointidata",
+                            public: false,
+                            files: { "levyraati-data.json": { content: contentData } }
+                        };
+
+                        let url = 'https://api.github.com/gists';
+                        let method = 'POST';
+
+                        if (githubGistId.value) {
+                            url = `https://api.github.com/gists/${githubGistId.value}`;
+                            method = 'PATCH';
+                        }
+
+                        const res = await fetch(url, {
+                            method,
+                            headers: {
+                                'Authorization': `token ${githubToken.value.trim()}`,
+                                'Accept': 'application/vnd.github.v3+json'
+                            },
+                            body: JSON.stringify(gistBody)
+                        });
+
+                        if (!res.ok) throw new Error('Virhe Gist-tallennuksessa');
+                        const data = await res.json();
+                        githubGistId.value = data.id;
+                        localStorage.setItem('levyraati_gist_id', data.id);
+                        showToast('Tiedot synkronoitu GitHubiin!');
+                    } catch (e) {
+                        showToast(e.message || 'Virhe pilvitallennuksessa');
+                    } finally {
+                        isSyncing.value = false;
+                    }
+                };
+
+                const fetchFromGist = async () => {
+                    if (!githubToken.value || !githubGistId.value) {
+                        showToast('Tallenna ensin pilveen kerran.'); return;
+                    }
+                    isSyncing.value = true;
+                    try {
+                        const res = await fetch(`https://api.github.com/gists/${githubGistId.value}`, {
+                            headers: { 'Authorization': `token ${githubToken.value.trim()}` }
+                        });
+                        if (!res.ok) throw new Error('Gistin hakeminen epäonnistui.');
+                        const data = await res.json();
+                        if (data.files && data.files['levyraati-data.json']) {
+                            const parsed = JSON.parse(data.files['levyraati-data.json'].content);
+                            if (parsed.ratings) {
+                                savedRatings.value = parsed.ratings;
+                                localStorage.setItem('levyraati_saved_ratings', JSON.stringify(savedRatings.value));
+                            }
+                            if (parsed.queue) {
+                                queue.value = parsed.queue;
+                                localStorage.setItem('levyraati_queue', JSON.stringify(queue.value));
+                            }
+                            showToast('Tiedot haettu pilvestä!');
+                        }
+                    } catch (e) {
+                        showToast(e.message || 'Virhe pilvitietoja haettaessa');
+                    } finally {
+                        isSyncing.value = false;
+                    }
+                };
+
+                // Asetusten hallinta
+                const saveSettings = () => {
+                    localStorage.setItem('levyraati_spotify_id', spotifyClientId.value.trim());
+                    localStorage.setItem('levyraati_spotify_secret', spotifyClientSecret.value.trim());
+                    localStorage.setItem('levyraati_github_token', githubToken.value.trim());
+                    showSettingsModal.value = false;
+                    showToast('Asetukset tallennettu!');
+                };
+
+                const clearSettings = () => {
+                    spotifyClientId.value = ''; spotifyClientSecret.value = ''; githubToken.value = '';
+                    localStorage.removeItem('levyraati_spotify_id');
+                    localStorage.removeItem('levyraati_spotify_secret');
+                    localStorage.removeItem('levyraati_github_token');
+                    showSettingsModal.value = false;
+                    showToast('Asetukset tyhjennetty.');
+                };
+
+                // JSON Vienti/Tuonti
+                const exportRatingsJSON = () => {
+                    const payload = { ratings: savedRatings.value, queue: queue.value };
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
+                    const a = document.createElement('a');
+                    a.href = dataStr;
+                    a.download = `levyraati_varmuuskopio_${new Date().toISOString().slice(0,10)}.json`;
+                    a.click();
+                    showToast('JSON-varmuuskopio ladattu!');
+                };
+
+                const importRatingsJSON = (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        try {
+                            const parsed = JSON.parse(evt.target.result);
+                            if (Array.isArray(parsed)) {
+                                savedRatings.value = parsed;
+                            } else if (parsed.ratings) {
+                                savedRatings.value = parsed.ratings;
+                                if (parsed.queue) queue.value = parsed.queue;
+                            }
+                            localStorage.setItem('levyraati_saved_ratings', JSON.stringify(savedRatings.value));
+                            localStorage.setItem('levyraati_queue', JSON.stringify(queue.value));
+                            showToast('Tiedot tuotu onnistuneesti!');
+                        } catch (err) {
+                            showToast('Virheellinen JSON-tiedosto.');
+                        }
+                    };
+                    reader.readAsText(file);
+                };
+
+                // Apu-funktiot
+                const getSpotifyUrl = (album) => {
+                    if (album.spotifyUrl) return album.spotifyUrl;
+                    if (album.spotifyId) return `https://open.spotify.com/album/${album.spotifyId}`;
+                    return `https://open.spotify.com/search/${encodeURIComponent(album.artist + ' ' + album.title)}`;
+                };
+
+                const formatMsToMmSs = (ms) => {
+                    const totalSec = Math.floor(ms / 1000);
+                    const m = Math.floor(totalSec / 60);
+                    const s = totalSec % 60;
+                    return `${m}:${s < 10 ? '0' : ''}${s}`;
+                };
+
+                const formatDate = (isoString) => {
+                    if (!isoString) return '';
+                    return new Date(isoString).toLocaleDateString('fi-FI', { day: 'numeric', month: 'numeric', year: 'numeric' });
+                };
+
+                const handleImageError = (e) => {
+                    e.target.src = 'https://placehold.co/400x400/18181b/ffffff?text=Kansi+puuttuu';
+                };
+
+                const showToast = (msg) => {
+                    toastMessage.value = msg;
+                    setTimeout(() => { toastMessage.value = ''; }, 3000);
+                };
+
+                return {
+                    activeTab,
+                    searchQuery,
+                    displayedAlbums,
+                    isSearching,
+                    isSpotifySearchResult,
+                    spotifyClientId,
+                    spotifyClientSecret,
+                    spotifyConfigured,
+                    githubToken,
+                    isSyncing,
+                    showSettingsModal,
+                    showManualModal,
+                    manualAlbum,
+                    queue,
+                    currentAlbum,
+                    trackRatings,
+                    overallScore,
+                    currentTags,
+                    newTagInput,
+                    presetTags,
+                    reviewNotes,
+                    isExistingRating,
+                    savedRatings,
+                    savedSortBy,
+                    savedSearchQuery,
+                    selectedTagFilter,
+                    podiumMetric,
+                    filteredSavedRatings,
+                    collectionOverallAverage,
+                    collectionTrackAverage,
+                    totalRatedTracksCount,
+                    top5Albums,
+                    allUsedTags,
+                    tagUsageBreakdown,
+                    deleteTargetId,
+                    toastMessage,
+                    totalAlbumDuration,
+                    calculatedAverage,
+                    ratedTracksCount,
+                    scoreDiffText,
+                    scoreDiffClass,
+                    handleSearch,
+                    filterPresetAlbums,
+                    selectAlbumToRate,
+                    addToQueue,
+                    removeFromQueue,
+                    isInQueue,
+                    startRatingFromQueue,
+                    setTrackRating,
+                    toggleExcludeTrack,
+                    toggleHighlightTrack,
+                    quickRateAll,
+                    resetCurrentRatings,
+                    addTagFromInput,
+                    addPresetTag,
+                    removeTag,
+                    saveCurrentRating,
+                    getSavedRating,
+                    editRating,
+                    deleteRatingPrompt,
+                    confirmDelete,
+                    openManualModal,
+                    saveManualAlbum,
+                    syncToGist,
+                    fetchFromGist,
+                    saveSettings,
+                    clearSettings,
+                    downloadIconPNG,
+                    exportRatingsJSON,
+                    importRatingsJSON,
+                    getSpotifyUrl,
+                    getHighlightsForItem,
+                    formatDate,
+                    handleImageError
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
+```
