@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="fi" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0f12" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Levyraati" />
+  <title>Levyraati — Täsmällinen albumipäiväkirja</title>
+
+  <link rel="icon" type="image/png" href="./icon.png" />
+  <link rel="apple-touch-icon" href="./icon.png" />
+  <link id="dynamic-manifest" rel="manifest" href="" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg-base: #0b0f12;
+      --bg-card: #13191e;
+      --bg-elevated: #1a2229;
+      --border-subtle: #24303a;
+      --accent-emerald: #10b981;
+      --accent-gold: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      background-color: var(--bg-base);
+      color: #f1f5f9;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      padding-bottom: calc(88px + env(safe-area-inset-bottom));
+      overflow-x: hidden;
+    }
+
+    .brand-title {
+      font-family: 'Cinzel', Georgia, serif;
+      letter-spacing: 0.06em;
+    }
+
+    .glass-header {
+      background: rgba(11, 15, 18, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(36, 48, 58, 0.8);
+    }
+
+    .bottom-nav {
+      background: rgba(13, 18, 22, 0.94);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-top: 1px solid rgba(36, 48, 58, 0.9);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .card-surface {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .input-surface {
+      background-color: #0e1317;
+      border: 1px solid var(--border-subtle);
+      color: #f8fafc;
+    }
+
+    .input-surface:focus {
+      outline: none;
+      border-color: var(--accent-emerald);
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+    }
+
+    .star-btn {
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.1s ease;
+    }
+    .star-btn:active {
+      transform: scale(0.92);
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b0f12;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #24303a;
+      border-radius: 999px;
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
+
+  <!-- Yläpalkki -->
+  <header class="glass-header sticky top-0 z-30 px-4 py-3.5">
+    <div class="max-w-2xl mx-auto flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3.5 cursor-pointer" onclick="switchTab('search')">
+        <div class="w-12 h-12 rounded-2xl overflow-hidden bg-[#13191e] border border-slate-700/80 shadow-lg flex-shrink-0 flex items-center justify-center">
+          <img id="header-logo-img" src="./icon.png" alt="Levyraati" class="w-full h-full object-cover" onerror="this.style.display='none'; document.getElementById('fallback-logo-svg').classList.remove('hidden');" />
+          <svg id="fallback-logo-svg" class="hidden w-9 h-9" viewBox="0 0 64 64" fill="none">
+            <circle cx="32" cy="32" r="26" fill="#1e293b" stroke="#94a3b8" stroke-width="2"/>
+            <circle cx="32" cy="32" r="18" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4 3"/>
+            <circle cx="32" cy="32" r="7" fill="#0b0f12" stroke="#f59e0b" stroke-width="2"/>
+            <path d="M32 23L34.3 28.4L40.2 29L35.7 32.8L37 38.6L32 35.5L27 38.6L28.3 32.8L23.8 29L29.7 28.4L32 23Z" fill="#f59e0b"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title text-xl font-black tracking-wider text-slate-100 leading-none">LEVYRAATI</h1>
+          <p class="text-xs text-slate-400 mt-1">Täsmällinen albumipäiväkirja &amp; musiikin arviointi</p>
+        </div>
+      </div>
+
+      <button id="quick-sync-btn" onclick="syncWithGitHubGist(true)" title="Synkronoi pilven kanssa" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-emerald-400 transition">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        <span id="quick-sync-label">Synkronoi</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Pääsisältö -->
+  <main class="max-w-2xl mx-auto px-4 pt-5">
+
+    <!-- 1. HAE-NÄKYMÄ -->
+    <section id="view-search" class="space-y-5">
+      <div class="card-surface rounded-2xl p-4 shadow-xl space-y-3.5">
+        <div class="relative">
+          <svg class="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>
+          <input id="search-input" type="search" placeholder="Hae albumia tai artistia..." onkeydown="if(event.key==='Enter') handleSearch()" class="input-surface w-full pl-11 pr-4 py-3.5 rounded-xl text-sm font-medium placeholder:text-slate-500" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <button onclick="handleSearch()" class="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.99] text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>
+            Hae
+          </button>
+          <button onclick="openManualAlbumModal()" class="flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl bg-[#182026] hover:bg-[#202b33] border border-slate-700/80 text-slate-200 font-semibold text-sm transition">
+            <span class="text-emerald-400 text-base leading-none">+</span> Oma levy
+          </button>
+        </div>
+
+        <div id="api-status-bar" class="flex items-center gap-2 pt-1 text-xs text-slate-400">
+          <span id="api-status-dot" class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"></span>
+          <span id="api-status-text">Spotify API -tunnukset puuttuvat — aseta ne Asetuksissa</span>
+        </div>
+      </div>
+
+      <!-- Hakutulokset -->
+      <div id="search-results-container" class="space-y-3">
+        <div id="search-empty-placeholder" class="card-surface rounded-2xl p-8 text-center space-y-3">
+          <div class="w-12 h-12 rounded-2xl bg-slate-800/80 border border-slate-700/70 mx-auto flex items-center justify-center text-emerald-400">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/></svg>
+          </div>
+          <h2 class="text-base font-bold text-slate-200">Etsi ensimmäinen levy arvioitavaksi</h2>
+          <p class="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+            Hae mitä tahansa albumia Spotifysta, lisää levy manuaalisesti tai tallenna kiinnostavia julkaisuja kuuntelujonoon.
+          </p>
+          <div class="pt-1">
+            <button onclick="switchTab('settings')" class="text-xs font-semibold text-emerald-400 hover:text-emerald-300 underline underline-offset-4">
+              Määritä Spotify API &amp; GitHub-synkronointi &rarr;
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. KUUNTELUJONO (TO-LISTEN) -->
+    <section id="view-queue" class="hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-slate-100">Kuuntelujono</h2>
+          <p class="text-xs text-slate-400">Levyt, jotka odottavat vuoroaan</p>
+        </div>
+        <span id="queue-count-pill" class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">0 levyä</span>
+      </div>
+
+      <div id="queue-list" class="space-y-3"></div>
+    </section>
+
+    <!-- 3. ARVIOIDUT LEVYT -->
+    <section id="view-rated" class="hidden space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 class="text-lg font-bold text-slate-100">Arvioidut levyt</h2>
+          <p id="rated-subtitle" class="text-xs text-slate-400">0 arvioitua albumia</p>
+        </div>
+        <select id="rated-sort" onchange="renderRated()" class="input-surface px-3 py-2 rounded-xl text-xs font-semibold text-slate-200">
+          <option value="newest">Uusimmat ensin</option>
+          <option value="vibe_desc">Kokonaisarvosana (paras)</option>
+          <option value="avg_desc">Biisien keskiarvo (paras)</option>
+          <option value="artist_asc">Artisti (A–Ö)</option>
+        </select>
+      </div>
+
+      <input id="rated-filter-input" type="search" oninput="renderRated()" placeholder="Suodata artistin, levyn tai tagin perusteella..." class="input-surface w-full px-3.5 py-2.5 rounded-xl text-xs" />
+
+      <div id="rated-list" class="space-y-3"></div>
+    </section>
+
+    <!-- 4. TILASTOT & VUOSIKATSAUS -->
+    <section id="view-stats" class="hidden space-y-4">
+      <div>
+        <h2 class="text-lg font-bold text-slate-100">Tilastot &amp; Podium</h2>
+        <p class="text-xs text-slate-400">Yhteenveto kuunteluistasi ja huippuarvioista</p>
+      </div>
+
+      <div id="stats-content" class="space-y-4"></div>
+    </section>
+
+    <!-- 5. ASETUKSET & SYNKRONOINTI -->
+    <section id="view-settings" class="hidden space-y-4">
+      <div>
+        <h2 class="text-lg font-bold text-slate-100">Asetukset &amp; Synkronointi</h2>
+        <p class="text-xs text-slate-400">Avaimet tallentuvat vain tämän laitteen omaan muistiin</p>
+      </div>
+
+      <!-- Spotify API -->
+      <div class="card-surface rounded-2xl p-4 space-y-3.5">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-bold text-emerald-400 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+            Spotify Web API -haku
+          </h3>
+          <span id="spotify-badge" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">Ei asetettu</span>
+        </div>
+
+        <div class="space-y-2.5">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Client ID</label>
+            <input id="setting-spotify-id" type="text" placeholder="Liitä Spotify Client ID..." class="input-surface w-full px-3 py-2.5 rounded-xl text-xs font-mono" />
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Client Secret</label>
+            <input id="setting-spotify-secret" type="password" placeholder="Liitä Spotify Client Secret..." class="input-surface w-full px-3 py-2.5 rounded-xl text-xs font-mono" />
+          </div>
+        </div>
+
+        <button onclick="saveSpotifyCredentials()" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition">
+          Tallenna Spotify-tunnukset
+        </button>
+      </div>
+
+      <!-- GitHub Gist Sync -->
+      <div class="card-surface rounded-2xl p-4 space-y-3.5">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-bold text-amber-400 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+            Pilvisynkronointi (GitHub Gist)
+          </h3>
+          <span id="gist-status-badge" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">Paikallinen</span>
+        </div>
+
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Syötä GitHub Personal Access Token (<code class="text-slate-300">gist</code>-oikeudella), niin puhelin ja tietokone jakavat saman yksityisen tietokannan automaattisesti.
+        </p>
+
+        <div class="space-y-2.5">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">GitHub Token (ghp_...)</label>
+            <input id="setting-gh-token" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" class="input-surface w-full px-3 py-2.5 rounded-xl text-xs font-mono" />
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Gist ID (haetaan automaattisesti tai liitä toiselta laitteelta)</label>
+            <input id="setting-gh-gist-id" type="text" placeholder="Täyttyy automaattisesti ensimmäisessä synkronoinnissa" class="input-surface w-full px-3 py-2.5 rounded-xl text-xs font-mono" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <button onclick="saveGitHubSettingsAndSync()" class="py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition">
+            Tallenna &amp; Synkronoi
+          </button>
+          <button onclick="pullFromGitHubGist()" class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-xs transition">
+            Hae pilvestä nyt
+          </button>
+        </div>
+        <p id="last-sync-info" class="text-[11px] text-slate-500"></p>
+      </div>
+
+      <!-- Varmuuskopiointi -->
+      <div class="card-surface rounded-2xl p-4 space-y-3">
+        <h3 class="text-sm font-bold text-slate-200">Varmuuskopiointi (JSON)</h3>
+        <div class="grid grid-cols-2 gap-2.5">
+          <button onclick="exportDataJSON()" class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-xs transition">
+            Vie varmuuskopio
+          </button>
+          <label class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-xs text-center cursor-pointer transition">
+            Tuo tiedostosta
+            <input type="file" accept=".json" onchange="importDataJSON(event)" class="hidden" />
+          </label>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Alapalkin navigaatio -->
+  <nav class="bottom-nav fixed bottom-0 inset-x-0 z-30">
+    <div class="max-w-2xl mx-auto grid grid-cols-5 h-16">
+      <button onclick="switchTab('search')" id="nav-search" class="nav-item flex flex-col items-center justify-center gap-1 text-emerald-400">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>
+        <span class="text-[11px] font-semibold">Hae</span>
+      </button>
+
+      <button onclick="switchTab('queue')" id="nav-queue" class="nav-item relative flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-200">
+        <div class="relative">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 7v5l3 3"/></svg>
+          <span id="badge-queue" class="hidden absolute -top-1.5 -right-2.5 min-w-[16px] h-4 px-1 rounded-full bg-amber-500 text-slate-950 text-[10px] font-extrabold flex items-center justify-center">0</span>
+        </div>
+        <span class="text-[11px] font-semibold">Jono</span>
+      </button>
+
+      <button onclick="switchTab('rated')" id="nav-rated" class="nav-item relative flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-200">
+        <div class="relative">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/></svg>
+          <span id="badge-rated" class="hidden absolute -top-1.5 -right-2.5 min-w-[16px] h-4 px-1 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-extrabold flex items-center justify-center">0</span>
+        </div>
+        <span class="text-[11px] font-semibold">Arvioidut</span>
+      </button>
+
+      <button onclick="switchTab('stats')" id="nav-stats" class="nav-item flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-200">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
+        <span class="text-[11px] font-semibold">Tilastot</span>
+      </button>
+
+      <button onclick="switchTab('settings')" id="nav-settings" class="nav-item flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-200">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span class="text-[11px] font-semibold">Asetukset</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ALBUMIN ARVIOINTIMODAALI -->
+  <div id="album-modal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm overflow-y-auto">
+    <div class="min-h-screen px-3 py-6 flex items-start justify-center">
+      <div class="card-surface w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-slate-700/80">
+        <!-- Modaalin yläosa -->
+        <div class="p-4 sm:p-5 bg-gradient-to-b from-slate-800/70 to-transparent border-b border-slate-800 flex items-start gap-4">
+          <img id="modal-cover" src="" alt="" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover bg-slate-800 border border-slate-700 flex-shrink-0 shadow-lg" />
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <h2 id="modal-title" class="text-base sm:text-lg font-extrabold text-white leading-snug"></h2>
+                <p id="modal-artist" class="text-xs sm:text-sm text-emerald-400 font-semibold mt-0.5"></p>
+                <p id="modal-meta" class="text-[11px] text-slate-400 mt-1"></p>
+              </div>
+              <button onclick="closeAlbumModal()" class="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 mt-3">
+              <a id="modal-spotify-link" href="#" target="_blank" rel="noopener" class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1DB954]/15 border border-[#1DB954]/40 text-[#1DB954] text-xs font-bold hover:bg-[#1DB954]/25 transition">
+                Avaa Spotifyssa &nearr;
+              </a>
+              <button id="modal-queue-btn" onclick="toggleCurrentAlbumInQueue()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition">
+                + Kuuntelujonoon
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pisteiden yhteenvetopalkki -->
+        <div class="px-4 sm:px-5 py-3.5 bg-[#0e1317] border-b border-slate-800/90 grid grid-cols-2 gap-3">
+          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+            <div class="text-[11px] text-slate-400 font-medium">Biisien keskiarvo</div>
+            <div class="flex items-baseline gap-1.5 mt-0.5">
+              <span id="modal-track-avg" class="text-xl font-extrabold text-emerald-400">—</span>
+              <span id="modal-rated-count" class="text-[11px] text-slate-500">0 / 0 biisiä</span>
+            </div>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+            <div class="text-[11px] text-slate-400 font-medium">Oma tunnelma-arvosana</div>
+            <div id="modal-vibe-stars" class="mt-1 flex items-center gap-1"></div>
+          </div>
+        </div>
+
+        <!-- Kappalelista -->
+        <div class="p-4 sm:p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Kappaleet (napauta vasenta/oikeaa reunaa = 0.5★)</h3>
+            <button onclick="addCustomTrackToCurrentAlbum()" class="text-xs font-semibold text-emerald-400 hover:text-emerald-300">+ Lisää raita</button>
+          </div>
+
+          <div id="modal-tracks-list" class="space-y-2 max-h-[42vh] overflow-y-auto pr-1"></div>
+
+          <!-- Muistiinpanot & Tagit -->
+          <div class="space-y-3 pt-2 border-t border-slate-800">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Tagit / Genre (pilkulla erotettuna)</label>
+              <input id="modal-tags" type="text" placeholder="esim. Metalli, Suomi, 2026, Klassikko" class="input-surface w-full px-3 py-2.5 rounded-xl text-xs" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Omat mietteet &amp; arvio</label>
+              <textarea id="modal-notes" rows="2" placeholder="Mikä levyssä toimii, mikä jäi mieleen?" class="input-surface w-full px-3 py-2.5 rounded-xl text-xs resize-none"></textarea>
+            </div>
+          </div>
+
+          <!-- Tallennusnapit -->
+          <div class="flex items-center justify-between gap-2.5 pt-2">
+            <button id="modal-delete-btn" onclick="deleteCurrentAlbum()" class="hidden px-3.5 py-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-bold transition">
+              Poista
+            </button>
+            <button onclick="saveCurrentAlbumReview()" class="flex-1 py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm shadow-lg shadow-emerald-500/20 transition">
+              Tallenna arvio
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MANUAALISEN LEVYN LISÄYSMODAALI -->
+  <div id="manual-modal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="card-surface w-full max-w-md rounded-3xl p-5 space-y-4 border border-slate-700">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-white">Lisää oma albumi</h3>
+        <button onclick="closeManualAlbumModal()" class="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white">&times;</button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Artisti *</label>
+          <input id="manual-artist" type="text" placeholder="esim. Stam1na" class="input-surface w-full px-3 py-2.5 rounded-xl text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Albumin nimi *</label>
+          <input id="manual-title" type="text" placeholder="esim. Novus Ordo Mundi" class="input-surface w-full px-3 py-2.5 rounded-xl text-sm" />
+        </div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Julkaisuvuosi</label>
+            <input id="manual-year" type="number" placeholder="2026" class="input-surface w-full px-3 py-2.5 rounded-xl text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Biisien määrä</label>
+            <input id="manual-track-count" type="number" value="10" min="1" max="50" class="input-surface w-full px-3 py-2.5 rounded-xl text-sm" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-400 mb-1">Kansikuvan URL (valinnainen)</label>
+          <input id="manual-cover" type="url" placeholder="https://..." class="input-surface w-full px-3 py-2.5 rounded-xl text-xs" />
+        </div>
+      </div>
+
+      <div class="flex gap-2.5 pt-2">
+        <button onclick="closeManualAlbumModal()" class="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-semibold text-xs">Peruuta</button>
+        <button onclick="createManualAlbum()" class="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs">Jatka arviointiin</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST-ILMOITUS -->
+  <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 hidden px-4 py-2.5 rounded-full bg-slate-900/95 border border-emerald-500/50 text-xs font-semibold text-emerald-300 shadow-2xl whitespace-nowrap"></div>
+
+  <script>
+    const STORAGE_KEY = 'levyraati_data_v2';
+    const SETTINGS_KEY = 'levyraati_settings_v2';
+
+    let appData = {
+      rated: [],
+      queue: [],
+      updatedAt: 0
+    };
+
+    let appSettings = {
+      spotifyClientId: '',
+      spotifyClientSecret: '',
+      githubToken: '',
+      githubGistId: '',
+      lastSync: ''
+    };
+
+    let activeAlbum = null;
+
+    function loadState() {
+      try {
+        const rawData = localStorage.getItem(STORAGE_KEY);
+        if (rawData) {
+          const parsed = JSON.parse(rawData);
+          appData.rated = Array.isArray(parsed.rated) ? parsed.rated : [];
+          appData.queue = Array.isArray(parsed.queue) ? parsed.queue : [];
+          appData.updatedAt = parsed.updatedAt || 0;
+        }
+      } catch (e) {
+        console.error('Datan latausvirhe:', e);
+      }
+
+      try {
+        const rawSettings = localStorage.getItem(SETTINGS_KEY);
+        if (rawSettings) {
+          appSettings = { ...appSettings, ...JSON.parse(rawSettings) };
+        }
+      } catch (e) {
+        console.error('Asetusten latausvirhe:', e);
+      }
+    }
+
+    function saveState(triggerCloud = true) {
+      appData.updatedAt = Date.now();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+      updateBadges();
+      if (triggerCloud && appSettings.githubToken) {
+        syncWithGitHubGist(false);
+      }
+    }
+
+    function saveSettings() {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings));
+      updateSettingsUI();
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => el.classList.add('hidden'), 2800);
+    }
+
+    function initManifest() {
+      const baseUrl = window.location.href.split('#')[0].split('?')[0];
+      const dirUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
+      const manifest = {
+        name: 'Levyraati',
+        short_name: 'Levyraati',
+        description: 'Täsmällinen albumipäiväkirja & musiikin arviointi',
+        start_url: baseUrl,
+        display: 'standalone',
+        background_color: '#0b0f12',
+        theme_color: '#0b0f12',
+        icons: [
+          {
+            src: dirUrl + 'icon.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ]
+      };
+      const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+      document.getElementById('dynamic-manifest').setAttribute('href', URL.createObjectURL(blob));
+    }
+
+    function switchTab(tab) {
+      ['search', 'queue', 'rated', 'stats', 'settings'].forEach(t => {
+        document.getElementById('view-' + t).classList.toggle('hidden', t !== tab);
+        const navBtn = document.getElementById('nav-' + t);
+        if (t === tab) {
+          navBtn.classList.remove('text-slate-400');
+          navBtn.classList.add('text-emerald-400');
+        } else {
+          navBtn.classList.remove('text-emerald-400');
+          navBtn.classList.add('text-slate-400');
+        }
+      });
+
+      if (tab === 'queue') renderQueue();
+      if (tab === 'rated') renderRated();
+      if (tab === 'stats') renderStats();
+      if (tab === 'settings') updateSettingsUI();
+    }
+
+    function updateBadges() {
+      const qBadge = document.getElementById('badge-queue');
+      const rBadge = document.getElementById('badge-rated');
+
+      if (appData.queue.length > 0) {
+        qBadge.textContent = appData.queue.length;
+        qBadge.classList.remove('hidden');
+      } else {
+        qBadge.classList.add('hidden');
+      }
+
+      if (appData.rated.length > 0) {
+        rBadge.textContent = appData.rated.length;
+        rBadge.classList.remove('hidden');
+      } else {
+        rBadge.classList.add('hidden');
+      }
+    }
+
+    function updateSettingsUI() {
+      document.getElementById('setting-spotify-id').value = appSettings.spotifyClientId || '';
+      document.getElementById('setting-spotify-secret').value = appSettings.spotifyClientSecret || '';
+      document.getElementById('setting-gh-token').value = appSettings.githubToken || '';
+      document.getElementById('setting-gh-gist-id').value = appSettings.githubGistId || '';
+
+      const hasSpotify = !!(appSettings.spotifyClientId && appSettings.spotifyClientSecret);
+      const spBadge = document.getElementById('spotify-badge');
+      const statusDot = document.getElementById('api-status-dot');
+      const statusText = document.getElementById('api-status-text');
+
+      if (hasSpotify) {
+        spBadge.textContent = 'Yhdistetty';
+        spBadge.className = 'text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold';
+        statusDot.className = 'w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0';
+        statusText.textContent = 'Spotify API yhdistetty — valmis hakemaan levyjä';
+      } else {
+        spBadge.textContent = 'Ei asetettu';
+        spBadge.className = 'text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400';
+        statusDot.className = 'w-2 h-2 rounded-full bg-amber-400 flex-shrink-0';
+        statusText.textContent = 'Spotify API -tunnukset puuttuvat — aseta ne Asetuksissa';
+      }
+
+      const gistBadge = document.getElementById('gist-status-badge');
+      const quickSync = document.getElementById('quick-sync-btn');
+      if (appSettings.githubToken) {
+        gistBadge.textContent = appSettings.githubGistId ? 'Synkronoitu' : 'Valmis';
+        gistBadge.className = 'text-[11px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold';
+        quickSync.classList.remove('hidden');
+        quickSync.classList.add('flex');
+      } else {
+        gistBadge.textContent = 'Paikallinen';
+        gistBadge.className = 'text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400';
+        quickSync.classList.add('hidden');
+        quickSync.classList.remove('flex');
+      }
+
+      document.getElementById('last-sync-info').textContent = appSettings.lastSync
+        ? 'Viimeisin pilvisynkronointi: ' + appSettings.lastSync
+        : '';
+    }
+
+    let cachedSpotifyToken = null;
+    let tokenExpiresAt = 0;
+
+    async function getSpotifyAccessToken() {
+      if (cachedSpotifyToken && Date.now() < tokenExpiresAt) {
+        return cachedSpotifyToken;
+      }
+      const id = appSettings.spotifyClientId.trim();
+      const secret = appSettings.spotifyClientSecret.trim();
+      if (!id || !secret) return null;
+
+      const resp = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': 'Basic ' + btoa(id + ':' + secret)
+        },
+        body: 'grant_type=client_credentials'
+      });
+
+      if (!resp.ok) throw new Error('Spotify-tunnistus epäonnistui. Tarkista Client ID ja Secret.');
+      const data = await resp.json();
+      cachedSpotifyToken = data.access_token;
+      tokenExpiresAt = Date.now() + (data.expires_in - 60) * 1000;
+      return cachedSpotifyToken;
+    }
+
+    async function handleSearch() {
+      const query = document.getElementById('search-input').value.trim();
+      if (!query) {
+        showToast('Kirjoita hakusana ensin');
+        return;
+      }
+
+      const container = document.getElementById('search-results-container');
+      if (!appSettings.spotifyClientId || !appSettings.spotifyClientSecret) {
+        container.innerHTML = `
+          <div class="card-surface rounded-2xl p-6 text-center space-y-3 border border-amber-500/30">
+            <p class="text-sm font-bold text-amber-300">Spotify API -avaimia ei ole vielä asetettu</p>
+            <p class="text-xs text-slate-400">Lisää Client ID ja Client Secret Asetuksissa tai lisää levy käsin "+ Oma levy" -napista.</p>
+            <button onclick="switchTab('settings')" class="px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs">Avaa Asetukset</button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = `<div class="card-surface rounded-2xl p-8 text-center text-xs text-slate-400">Haetaan Spotifysta...</div>`;
+
+      try {
+        const token = await getSpotifyAccessToken();
+        const res = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=album&limit=16`, {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) throw new Error('Haku epäonnistui');
+        const json = await res.json();
+        const albums = json.albums?.items || [];
+
+        if (albums.length === 0) {
+          container.innerHTML = `<div class="card-surface rounded-2xl p-8 text-center text-xs text-slate-400">Ei hakutuloksia haulle "${escapeHtml(query)}".</div>`;
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="flex items-center justify-between px-1">
+            <span class="text-xs font-bold text-slate-300">Hakutulokset</span>
+            <span class="text-xs text-slate-500">${albums.length} albumia</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            ${albums.map(alb => {
+              const cover = alb.images?.[0]?.url || '';
+              const artist = alb.artists.map(a => a.name).join(', ');
+              const year = (alb.release_date || '').slice(0, 4);
+              const existing = appData.rated.find(r => r.id === alb.id);
+              const inQueue = appData.queue.some(q => q.id === alb.id);
+
+              return `
+                <div class="card-surface rounded-2xl overflow-hidden flex flex-col justify-between group hover:border-emerald-500/50 transition">
+                  <div class="cursor-pointer" onclick="openSpotifyAlbum('${alb.id}')">
+                    <div class="relative aspect-square bg-slate-900">
+                      <img src="${cover}" alt="" class="w-full h-full object-cover" loading="lazy" />
+                      ${existing ? `<span class="absolute top-2 right-2 px-2 py-0.5 rounded-lg bg-amber-500 text-slate-950 text-xs font-extrabold shadow">&#9733; ${existing.vibeRating || existing.trackAvg}</span>` : ''}
+                    </div>
+                    <div class="p-3 pb-2">
+                      <h3 class="text-xs font-bold text-slate-100 line-clamp-1">${escapeHtml(alb.name)}</h3>
+                      <p class="text-[11px] text-slate-400 line-clamp-1 mt-0.5">${escapeHtml(artist)}</p>
+                    </div>
+                  </div>
+                  <div class="px-3 pb-3 pt-1 flex items-center justify-between text-[11px] text-slate-500">
+                    <span>${year}</span>
+                    <button onclick="quickAddSpotifyToQueue('${alb.id}')" class="font-semibold ${inQueue ? 'text-amber-400' : 'text-emerald-400 hover:text-emerald-300'}">
+                      ${inQueue ? 'Jonossa ✓' : '+ Jono'}
+                    </button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      } catch (err) {
+        container.innerHTML = `<div class="card-surface rounded-2xl p-6 text-center text-xs text-rose-400">${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    async function fetchFullSpotifyAlbum(albumId) {
+      const token = await getSpotifyAccessToken();
+      const res = await fetch(`https://api.spotify.com/v1/albums/${albumId}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!res.ok) throw new Error('Albumin tietojen haku epäonnistui');
+      const alb = await res.json();
+
+      return {
+        id: alb.id,
+        title: alb.name,
+        artist: alb.artists.map(a => a.name).join(', '),
+        year: (alb.release_date || '').slice(0, 4),
+        cover: alb.images?.[0]?.url || '',
+        spotifyUrl: alb.external_urls?.spotify || '',
+        tracks: (alb.tracks?.items || []).map((t, idx) => ({
+          id: t.id || 't_' + idx,
+          number: t.track_number || idx + 1,
+          title: t.name,
+          durationMs: t.duration_ms || 0,
+          rating: 0,
+          skipped: false,
+          highlight: false
+        })),
+        vibeRating: 0,
+        trackAvg: 0,
+        tags: [],
+        notes: '',
+        ratedAt: new Date().toISOString()
+      };
+    }
+
+    async function openSpotifyAlbum(albumId) {
+      const existingRated = appData.rated.find(a => a.id === albumId);
+      if (existingRated) {
+        openAlbumModal(JSON.parse(JSON.stringify(existingRated)));
+        return;
+      }
+      const existingQueue = appData.queue.find(a => a.id === albumId);
+      if (existingQueue && existingQueue.tracks && existingQueue.tracks.length > 0) {
+        openAlbumModal(JSON.parse(JSON.stringify(existingQueue)));
+        return;
+      }
+
+      showToast('Ladataan kappalelistaa...');
+      try {
+        const albumObj = await fetchFullSpotifyAlbum(albumId);
+        openAlbumModal(albumObj);
+      } catch (e) {
+        showToast(e.message);
+      }
+    }
+
+    async function quickAddSpotifyToQueue(albumId) {
+      if (appData.queue.some(q => q.id === albumId)) {
+        showToast('Levy on jo kuuntelujonossa');
+        return;
+      }
+      try {
+        showToast('Lisätään jonoon...');
+        const albumObj = await fetchFullSpotifyAlbum(albumId);
+        appData.queue.unshift(albumObj);
+        saveState();
+        showToast('Lisätty kuuntelujonoon!');
+      } catch (e) {
+        showToast(e.message);
+      }
+    }
+
+    function openManualAlbumModal() {
+      document.getElementById('manual-modal').classList.remove('hidden');
+    }
+
+    function closeManualAlbumModal() {
+      document.getElementById('manual-modal').classList.add('hidden');
+    }
+
+    function createManualAlbum() {
+      const artist = document.getElementById('manual-artist').value.trim();
+      const title = document.getElementById('manual-title').value.trim();
+      const year = document.getElementById('manual-year').value.trim() || String(new Date().getFullYear());
+      const count = Math.max(1, Math.min(50, parseInt(document.getElementById('manual-track-count').value, 10) || 10));
+      const cover = document.getElementById('manual-cover').value.trim() || './icon.png';
+
+      if (!artist || !title) {
+        showToast('Anna artistin ja albumin nimi');
+        return;
+      }
+
+      const tracks = Array.from({ length: count }, (_, i) => ({
+        id: 'm_' + Date.now() + '_' + i,
+        number: i + 1,
+        title: `Raita ${i + 1}`,
+        durationMs: 0,
+        rating: 0,
+        skipped: false,
+        highlight: false
+      }));
+
+      const albumObj = {
+        id: 'manual_' + Date.now(),
+        title,
+        artist,
+        year,
+        cover,
+        spotifyUrl: '',
+        tracks,
+        vibeRating: 0,
+        trackAvg: 0,
+        tags: [],
+        notes: '',
+        ratedAt: new Date().toISOString()
+      };
+
+      closeManualAlbumModal();
+      openAlbumModal(albumObj);
+    }
+
+    function openAlbumModal(album) {
+      activeAlbum = album;
+      document.getElementById('modal-cover').src = album.cover || './icon.png';
+      document.getElementById('modal-title').textContent = album.title;
+      document.getElementById('modal-artist').textContent = album.artist;
+      document.getElementById('modal-meta').textContent = `${album.year || ''} • ${album.tracks.length} kappaletta`;
+
+      const spLink = document.getElementById('modal-spotify-link');
+      if (album.spotifyUrl) {
+        spLink.href = album.spotifyUrl;
+        spLink.classList.remove('hidden');
+      } else {
+        spLink.classList.add('hidden');
+      }
+
+      document.getElementById('modal-tags').value = (album.tags || []).join(', ');
+      document.getElementById('modal-notes').value = album.notes || '';
+
+      const isAlreadyRated = appData.rated.some(r => r.id === album.id);
+      document.getElementById('modal-delete-btn').classList.toggle('hidden', !isAlreadyRated);
+
+      updateModalQueueBtn();
+      renderModalRatings();
+      document.getElementById('album-modal').classList.remove('hidden');
+    }
+
+    function closeAlbumModal() {
+      document.getElementById('album-modal').classList.add('hidden');
+      activeAlbum = null;
+    }
+
+    function updateModalQueueBtn() {
+      if (!activeAlbum) return;
+      const inQueue = appData.queue.some(q => q.id === activeAlbum.id);
+      const btn = document.getElementById('modal-queue-btn');
+      btn.textContent = inQueue ? '✓ Jonossa (poista)' : '+ Kuuntelujonoon';
+      btn.className = inQueue
+        ? 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-semibold transition'
+        : 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition';
+    }
+
+    function toggleCurrentAlbumInQueue() {
+      if (!activeAlbum) return;
+      const idx = appData.queue.findIndex(q => q.id === activeAlbum.id);
+      if (idx >= 0) {
+        appData.queue.splice(idx, 1);
+        showToast('Poistettu kuuntelujonosta');
+      } else {
+        appData.queue.unshift(JSON.parse(JSON.stringify(activeAlbum)));
+        showToast('Lisätty kuuntelujonoon');
+      }
+      saveState();
+      updateModalQueueBtn();
+      renderQueue();
+    }
+
+    function renderStarRow(rating, onClickFnName, argPrefix) {
+      let html = '<div class="inline-flex items-center gap-0.5">';
+      for (let i = 1; i <= 5; i++) {
+        let fillState = 'empty';
+        if (rating >= i) fillState = 'full';
+        else if (rating >= i - 0.5) fillState = 'half';
+
+        const gradId = `hg_${argPrefix}_${i}_${Math.random().toString(36).slice(2, 6)}`;
+        let fillAttr = '#1e293b';
+        let strokeAttr = '#475569';
+        if (fillState === 'full') {
+          fillAttr = '#f59e0b';
+          strokeAttr = '#f59e0b';
+        } else if (fillState === 'half') {
+          fillAttr = `url(#${gradId})`;
+          strokeAttr = '#f59e0b';
+        }
+
+        html += `
+          <div class="star-btn relative w-6 h-6 flex items-center justify-center" onclick="handleStarClick(event, ${i}, '${onClickFnName}', ${argPrefix})">
+            <svg class="w-5 h-5 pointer-events-none" viewBox="0 0 24 24">
+              ${fillState === 'half' ? `<defs><linearGradient id="${gradId}"><stop offset="50%" stop-color="#f59e0b"/><stop offset="50%" stop-color="#1e293b"/></linearGradient></defs>` : ''}
+              <path fill="${fillAttr}" stroke="${strokeAttr}" stroke-width="1.8" stroke-linejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+          </div>
+        `;
+      }
+      html += '</div>';
+      return html;
+    }
+
+    function handleStarClick(event, starIndex, fnName, targetIndex) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const isLeftHalf = (event.clientX - rect.left) < rect.width / 2;
+      const newVal = isLeftHalf ? starIndex - 0.5 : starIndex;
+
+      if (fnName === 'setVibeRating') {
+        activeAlbum.vibeRating = activeAlbum.vibeRating === newVal ? 0 : newVal;
+      } else if (fnName === 'setTrackRating') {
+        const track = activeAlbum.tracks[targetIndex];
+        track.rating = track.rating === newVal ? 0 : newVal;
+        if (track.rating > 0) track.skipped = false;
+      }
+      renderModalRatings();
+    }
+
+    function toggleTrackSkip(idx) {
+      const t = activeAlbum.tracks[idx];
+      t.skipped = !t.skipped;
+      if (t.skipped) {
+        t.rating = 0;
+        t.highlight = false;
+      }
+      renderModalRatings();
+    }
+
+    function toggleTrackHighlight(idx) {
+      const t = activeAlbum.tracks[idx];
+      if (t.skipped) return;
+      t.highlight = !t.highlight;
+      renderModalRatings();
+    }
+
+    function renameTrack(idx) {
+      const t = activeAlbum.tracks[idx];
+      const next = prompt('Kappaleen nimi:', t.title);
+      if (next && next.trim()) {
+        t.title = next.trim();
+        renderModalRatings();
+      }
+    }
+
+    function addCustomTrackToCurrentAlbum() {
+      const nextNum = activeAlbum.tracks.length + 1;
+      const name = prompt('Uuden raidan nimi:', `Raita ${nextNum}`);
+      if (!name || !name.trim()) return;
+      activeAlbum.tracks.push({
+        id: 'c_' + Date.now(),
+        number: nextNum,
+        title: name.trim(),
+        durationMs: 0,
+        rating: 0,
+        skipped: false,
+        highlight: false
+      });
+      renderModalRatings();
+    }
+
+    function calculateTrackStats(tracks) {
+      const scored = tracks.filter(t => !t.skipped && t.rating > 0);
+      const activeTotal = tracks.filter(t => !t.skipped).length;
+      if (scored.length === 0) return { avg: 0, scoredCount: 0, activeTotal };
+      const sum = scored.reduce((acc, t) => acc + t.rating, 0);
+      return {
+        avg: Number((sum / scored.length).toFixed(2)),
+        scoredCount: scored.length,
+        activeTotal
+      };
+    }
+
+    function renderModalRatings() {
+      if (!activeAlbum) return;
+      const stats = calculateTrackStats(activeAlbum.tracks);
+      activeAlbum.trackAvg = stats.avg;
+
+      document.getElementById('modal-track-avg').textContent = stats.avg > 0 ? stats.avg.toFixed(2) : '—';
+      document.getElementById('modal-rated-count').textContent = `${stats.scoredCount} / ${stats.activeTotal} biisiä`;
+
+      document.getElementById('modal-vibe-stars').innerHTML =
+        renderStarRow(activeAlbum.vibeRating || 0, 'setVibeRating', 0) +
+        `<span class="text-xs font-extrabold text-amber-400 ml-1">${activeAlbum.vibeRating > 0 ? activeAlbum.vibeRating.toFixed(1) : ''}</span>`;
+
+      const listEl = document.getElementById('modal-tracks-list');
+      listEl.innerHTML = activeAlbum.tracks.map((t, idx) => {
+        const dur = t.durationMs ? formatDuration(t.durationMs) : '';
+        return `
+          <div class="p-2.5 rounded-xl border transition ${t.skipped ? 'bg-slate-900/40 border-slate-800/60 opacity-50' : t.highlight ? 'bg-amber-500/10 border-amber-500/40' : 'bg-[#0e1317] border-slate-800'}">
+            <div class="flex items-center justify-between gap-2">
+              <div class="min-w-0 flex-1 flex items-center gap-2">
+                <span class="text-[11px] font-mono text-slate-500 w-5 text-right flex-shrink-0">${t.number}.</span>
+                <span onclick="renameTrack(${idx})" class="text-xs font-semibold text-slate-200 truncate cursor-pointer hover:text-emerald-400 ${t.skipped ? 'line-through' : ''}">${escapeHtml(t.title)}</span>
+                ${dur ? `<span class="text-[10px] text-slate-500 flex-shrink-0">${dur}</span>` : ''}
+              </div>
+
+              <div class="flex items-center gap-1.5 flex-shrink-0">
+                <button onclick="toggleTrackHighlight(${idx})" title="Levyn helmi" class="px-2 py-1 rounded-lg text-xs transition ${t.highlight ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800/70 text-slate-500 hover:text-slate-300'}">
+                  &#128293;
+                </button>
+                <button onclick="toggleTrackSkip(${idx})" title="Ohita (ei lasketa keskiarvoon)" class="px-2 py-1 rounded-lg text-[10px] font-bold transition ${t.skipped ? 'bg-rose-500/20 text-rose-300' : 'bg-slate-800/70 text-slate-400 hover:text-slate-200'}">
+                  Skip
+                </button>
+              </div>
+            </div>
+
+            ${!t.skipped ? `
+              <div class="mt-2 pl-7 flex items-center justify-between">
+                ${renderStarRow(t.rating || 0, 'setTrackRating', idx)}
+                <span class="text-xs font-bold ${t.rating > 0 ? 'text-amber-400' : 'text-slate-600'}">${t.rating > 0 ? t.rating.toFixed(1) : '—'}</span>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function saveCurrentAlbumReview() {
+      if (!activeAlbum) return;
+      const stats = calculateTrackStats(activeAlbum.tracks);
+      activeAlbum.trackAvg = stats.avg;
+      activeAlbum.tags = document.getElementById('modal-tags').value
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+      activeAlbum.notes = document.getElementById('modal-notes').value.trim();
+      if (!activeAlbum.ratedAt) activeAlbum.ratedAt = new Date().toISOString();
+
+      const existingIdx = appData.rated.findIndex(r => r.id === activeAlbum.id);
+      if (existingIdx >= 0) {
+        appData.rated[existingIdx] = JSON.parse(JSON.stringify(activeAlbum));
+      } else {
+        appData.rated.unshift(JSON.parse(JSON.stringify(activeAlbum)));
+      }
+
+      appData.queue = appData.queue.filter(q => q.id !== activeAlbum.id);
+
+      saveState();
+      closeAlbumModal();
+      renderRated();
+      renderQueue();
+      showToast('Arvio tallennettu kokoelmaan!');
+    }
+
+    function deleteCurrentAlbum() {
+      if (!activeAlbum) return;
+      if (!confirm(`Poistetaanko "${activeAlbum.title}" arvioiduista?`)) return;
+      appData.rated = appData.rated.filter(r => r.id !== activeAlbum.id);
+      saveState();
+      closeAlbumModal();
+      renderRated();
+      showToast('Levy poistettu');
+    }
+
+    function renderQueue() {
+      const list = document.getElementById('queue-list');
+      document.getElementById('queue-count-pill').textContent = `${appData.queue.length} levyä`;
+
+      if (appData.queue.length === 0) {
+        list.innerHTML = `
+          <div class="card-surface rounded-2xl p-8 text-center space-y-2">
+            <p class="text-sm font-bold text-slate-300">Kuuntelujono on tyhjä</p>
+            <p class="text-xs text-slate-400">Lisää kiinnostavia levyjä Hae-välilehdeltä odottamaan kuuntelua.</p>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = appData.queue.map(alb => `
+        <div class="card-surface rounded-2xl p-3 flex items-center gap-3.5">
+          <img src="${alb.cover || './icon.png'}" alt="" class="w-16 h-16 rounded-xl object-cover bg-slate-800 flex-shrink-0" />
+          <div class="flex-1 min-w-0">
+            <h3 class="text-sm font-bold text-slate-100 truncate">${escapeHtml(alb.title)}</h3>
+            <p class="text-xs text-slate-400 truncate">${escapeHtml(alb.artist)} • ${alb.year || ''}</p>
+            <div class="flex items-center gap-2 mt-2">
+              <button onclick="openAlbumModal(JSON.parse(decodeURIComponent('${encodeURIComponent(JSON.stringify(alb))}')))" class="px-3 py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold text-xs">
+                Arvioi nyt
+              </button>
+              <button onclick="removeFromQueue('${alb.id}')" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 hover:text-rose-400 text-xs">
+                Poista
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function removeFromQueue(id) {
+      appData.queue = appData.queue.filter(q => q.id !== id);
+      saveState();
+      renderQueue();
+    }
+
+    function renderRated() {
+      const list = document.getElementById('rated-list');
+      const filter = (document.getElementById('rated-filter-input').value || '').toLowerCase().trim();
+      const sortBy = document.getElementById('rated-sort').value;
+
+      let items = [...appData.rated];
+      if (filter) {
+        items = items.filter(a =>
+          a.title.toLowerCase().includes(filter) ||
+          a.artist.toLowerCase().includes(filter) ||
+          (a.tags || []).some(t => t.toLowerCase().includes(filter))
+        );
+      }
+
+      if (sortBy === 'vibe_desc') {
+        items.sort((a, b) => (b.vibeRating || b.trackAvg || 0) - (a.vibeRating || a.trackAvg || 0));
+      } else if (sortBy === 'avg_desc') {
+        items.sort((a, b) => (b.trackAvg || 0) - (a.trackAvg || 0));
+      } else if (sortBy === 'artist_asc') {
+        items.sort((a, b) => a.artist.localeCompare(b.artist, 'fi'));
+      }
+
+      document.getElementById('rated-subtitle').textContent = `${appData.rated.length} arvioitua albumia`;
+
+      if (items.length === 0) {
+        list.innerHTML = `
+          <div class="card-surface rounded-2xl p-8 text-center space-y-2">
+            <p class="text-sm font-bold text-slate-300">${appData.rated.length === 0 ? 'Ei vielä arvioituja levyjä' : 'Ei hakuehtoja vastaavia levyjä'}</p>
+            <p class="text-xs text-slate-400">Hae levy Spotifysta tai lisää oma albumi aloittaaksesi kokoelman.</p>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = items.map(alb => {
+        const highlights = (alb.tracks || []).filter(t => t.highlight && !t.skipped).map(t => t.title);
+        return `
+          <div onclick="openAlbumModal(JSON.parse(decodeURIComponent('${encodeURIComponent(JSON.stringify(alb))}')))" class="card-surface rounded-2xl p-3.5 cursor-pointer hover:border-emerald-500/40 transition space-y-2.5">
+            <div class="flex items-start gap-3.5">
+              <img src="${alb.cover || './icon.png'}" alt="" class="w-16 h-16 rounded-xl object-cover bg-slate-800 flex-shrink-0" />
+              <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0">
+                    <h3 class="text-sm font-bold text-slate-100 truncate">${escapeHtml(alb.title)}</h3>
+                    <p class="text-xs text-emerald-400 font-medium truncate">${escapeHtml(alb.artist)} <span class="text-slate-500">• ${alb.year || ''}</span></p>
+                  </div>
+                  <div class="text-right flex-shrink-0">
+                    ${alb.vibeRating > 0 ? `<div class="px-2 py-0.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-extrabold">&#9733; ${alb.vibeRating.toFixed(1)}</div>` : ''}
+                    ${alb.trackAvg > 0 ? `<div class="text-[11px] text-slate-400 mt-1">Biisit: <strong class="text-slate-200">${alb.trackAvg.toFixed(2)}</strong></div>` : ''}
+                  </div>
+                </div>
+
+                ${highlights.length > 0 ? `
+                  <div class="mt-2 text-[11px] text-amber-300/90 truncate">
+                    &#128293; Helmet: ${escapeHtml(highlights.join(', '))}
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+
+            ${(alb.tags && alb.tags.length > 0) ? `
+              <div class="flex flex-wrap gap-1.5">
+                ${alb.tags.map(tag => `<span class="px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-semibold text-slate-300">#${escapeHtml(tag)}</span>`).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderStats() {
+      const container = document.getElementById('stats-content');
+      if (appData.rated.length === 0) {
+        container.innerHTML = `
+          <div class="card-surface rounded-2xl p-8 text-center space-y-2">
+            <p class="text-sm font-bold text-slate-300">Tilastot rakentuvat arvioiden myötä</p>
+            <p class="text-xs text-slate-400">Arvioi ensimmäinen albumi nähdäksesi Top-podiumin ja keskiarvot.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const totalAlbums = appData.rated.length;
+      const totalTracksRated = appData.rated.reduce((sum, a) => sum + (a.tracks || []).filter(t => !t.skipped && t.rating > 0).length, 0);
+      const avgVibe = (appData.rated.filter(a => a.vibeRating > 0).reduce((s, a, _, arr) => s + a.vibeRating / arr.length, 0)).toFixed(2);
+      const top5 = [...appData.rated]
+        .sort((a, b) => (b.vibeRating || b.trackAvg || 0) - (a.vibeRating || a.trackAvg || 0))
+        .slice(0, 5);
+
+      container.innerHTML = `
+        <div class="grid grid-cols-3 gap-2.5">
+          <div class="card-surface rounded-2xl p-3.5 text-center">
+            <div class="text-xl font-extrabold text-emerald-400">${totalAlbums}</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">Arvioitua levyä</div>
+          </div>
+          <div class="card-surface rounded-2xl p-3.5 text-center">
+            <div class="text-xl font-extrabold text-amber-400">${avgVibe > 0 ? avgVibe : '—'}</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">Tunnelma ka.</div>
+          </div>
+          <div class="card-surface rounded-2xl p-3.5 text-center">
+            <div class="text-xl font-extrabold text-slate-100">${totalTracksRated}</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">Arvioitua biisiä</div>
+          </div>
+        </div>
+
+        <div class="card-surface rounded-2xl p-4 space-y-3">
+          <h3 class="text-sm font-bold text-amber-400">Top 5 Podium</h3>
+          <div class="space-y-2.5">
+            ${top5.map((alb, i) => `
+              <div class="flex items-center gap-3 p-2 rounded-xl bg-[#0e1317] border border-slate-800/80">
+                <span class="w-6 text-center font-extrabold text-sm ${i === 0 ? 'text-amber-400' : 'text-slate-400'}">#${i + 1}</span>
+                <img src="${alb.cover || './icon.png'}" class="w-10 h-10 rounded-lg object-cover" />
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs font-bold text-slate-100 truncate">${escapeHtml(alb.title)}</div>
+                  <div class="text-[11px] text-slate-400 truncate">${escapeHtml(alb.artist)}</div>
+                </div>
+                <span class="text-xs font-extrabold text-amber-400">&#9733; ${(alb.vibeRating || alb.trackAvg || 0).toFixed(1)}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function saveSpotifyCredentials() {
+      appSettings.spotifyClientId = document.getElementById('setting-spotify-id').value.trim();
+      appSettings.spotifyClientSecret = document.getElementById('setting-spotify-secret').value.trim();
+      cachedSpotifyToken = null;
+      saveSettings();
+      showToast('Spotify-tunnukset tallennettu!');
+    }
+
+    async function saveGitHubSettingsAndSync() {
+      appSettings.githubToken = document.getElementById('setting-gh-token').value.trim();
+      appSettings.githubGistId = document.getElementById('setting-gh-gist-id').value.trim();
+      saveSettings();
+      if (appSettings.githubToken) {
+        await syncWithGitHubGist(true);
+      } else {
+        showToast('GitHub Token tyhjennetty');
+      }
+    }
+
+    async function syncWithGitHubGist(interactive = false) {
+      const token = appSettings.githubToken.trim();
+      if (!token) return;
+
+      const labelEl = document.getElementById('quick-sync-label');
+      if (labelEl) labelEl.textContent = 'Synkronoidaan...';
+
+      try {
+        const headers = {
+          'Authorization': 'Bearer ' + token,
+          'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        };
+
+        let gistId = appSettings.githubGistId.trim();
+
+        if (!gistId) {
+          const listRes = await fetch('https://api.github.com/gists', { headers });
+          if (!listRes.ok) throw new Error('GitHub-tunnistus epäonnistui');
+          const gists = await listRes.json();
+          const found = gists.find(g => g.files && g.files['levyraati_db.json']);
+          if (found) {
+            gistId = found.id;
+            appSettings.githubGistId = gistId;
+          }
+        }
+
+        if (gistId) {
+          const getRes = await fetch(`https://api.github.com/gists/${gistId}`, { headers });
+          if (getRes.ok) {
+            const gistData = await getRes.json();
+            const rawContent = gistData.files?.['levyraati_db.json']?.content;
+            if (rawContent) {
+              const remoteData = JSON.parse(rawContent);
+              if ((remoteData.updatedAt || 0) > (appData.updatedAt || 0)) {
+                appData = {
+                  rated: remoteData.rated || [],
+                  queue: remoteData.queue || [],
+                  updatedAt: remoteData.updatedAt
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+                updateBadges();
+                renderRated();
+                renderQueue();
+                appSettings.lastSync = new Date().toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' });
+                saveSettings();
+                if (interactive) showToast('Uudemmat tiedot haettu pilvestä!');
+                return;
+              }
+            }
+          }
+
+          const patchRes = await fetch(`https://api.github.com/gists/${gistId}`, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify({
+              files: {
+                'levyraati_db.json': {
+                  content: JSON.stringify(appData, null, 2)
+                }
+              }
+            })
+          });
+          if (!patchRes.ok) throw new Error('Pilvitallennus epäonnistui');
+        } else {
+          const createRes = await fetch('https://api.github.com/gists', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              description: 'Levyraati — Albumipäiväkirjan tietokanta',
+              public: false,
+              files: {
+                'levyraati_db.json': {
+                  content: JSON.stringify(appData, null, 2)
+                }
+              }
+            })
+          });
+          if (!createRes.ok) throw new Error('Uuden Gistin luonti epäonnistui');
+          const created = await createRes.json();
+          appSettings.githubGistId = created.id;
+        }
+
+        appSettings.lastSync = new Date().toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' });
+        saveSettings();
+        if (interactive) showToast('Synkronoitu pilveen!');
+      } catch (err) {
+        if (interactive) showToast(err.message);
+      } finally {
+        if (labelEl) labelEl.textContent = 'Synkronoi';
+      }
+    }
+
+    async function pullFromGitHubGist() {
+      const token = appSettings.githubToken.trim();
+      if (!token) {
+        showToast('Syötä GitHub Token ensin');
+        return;
+      }
+      const backupTime = appData.updatedAt;
+      appData.updatedAt = 0;
+      await syncWithGitHubGist(true);
+      if (appData.updatedAt === 0) appData.updatedAt = backupTime;
+    }
+
+    function exportDataJSON() {
+      const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `levyraati_varmuuskopio_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+    }
+
+    function importDataJSON(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          appData.rated = Array.isArray(parsed.rated) ? parsed.rated : [];
+          appData.queue = Array.isArray(parsed.queue) ? parsed.queue : [];
+          saveState();
+          renderRated();
+          renderQueue();
+          showToast('Varmuuskopio tuotu onnistuneesti!');
+        } catch (err) {
+          showToast('Virheellinen JSON-tiedosto');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function formatDuration(ms) {
+      const totalSec = Math.floor(ms / 1000);
+      const min = Math.floor(totalSec / 60);
+      const sec = String(totalSec % 60).padStart(2, '0');
+      return `${min}:${sec}`;
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    loadState();
+    initManifest();
+    updateBadges();
+    updateSettingsUI();
+    if (appSettings.githubToken) {
+      syncWithGitHubGist(false);
+    }
+  </script>
+</body>
+</html>
